@@ -1,7 +1,7 @@
 # Hex-kuldeep
 <!-- HACKER STYLE HEADER -->
 <div align="center">
-  <!-- YAHAN APNE LOGO KA LINK DALNA HAI -->
+  <!-- https://github.com/kuldeepLinux/Hex-kuldeep/blob/main/IMG_4833.png?raw=true-->
   <img src="YAHAN_APNA_LOGO_LINK_PASTE_KAREIN" alt="Hexbytes Logo" width="250" style="border-radius: 10px; filter: drop-shadow(0 0 15px #00ffcc);">
   
   <h1 style="color: #00ffcc; text-shadow: 0 0 10px #00ffcc;">
