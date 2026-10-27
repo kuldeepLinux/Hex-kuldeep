@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hexbytes - AI DPDP & Security Auditor</title>
+    <style>
+        :root {
+            --bg-dark: #0a0e17;
+            --panel-bg: #111827;
+            --neon-green: #00ffcc;
+            --neon-red: #ff3366;
+            --neon-yellow: #fbbf24;
+            --neon-blue: #3b82f6;
+            --neon-purple: #8b5cf6;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0; padding: 20px;
+            display: flex; justify-content: center;
+        }
+
+        .container {
+            background-color: var(--panel-bg);
+            padding: 30px; border-radius: 12px;
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.1);
+            width: 100%; max-width: 950px;
+            border: 1px solid #1f2937;
+            margin-bottom: 50px;
+        }
+
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #1f2937; padding-bottom: 15px;}
+        .header h1 { color: var(--neon-green); margin: 0; font-size: 32px; font-family: 'Courier New', monospace; text-shadow: 0 0 10px rgba(0,255,204,0.3);}
+        .header p { color: var(--text-muted); font-size: 14px; margin-top: 5px;}
+        
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;}
+        .tab-btn { background: transparent; color: var(--text-muted); border: 1px solid #374151; padding: 12px; border-radius: 6px; cursor: pointer; flex: 1; font-weight: bold; transition: 0.3s; font-size: 15px;}
+        .tab-btn:hover { border-color: var(--neon-green); color: var(--neon-green);}
+        .tab-btn.active { background: rgba(0, 255, 204, 0.1); color: var(--neon-green); border-color: var(--neon-green); box-shadow: 0 0 10px rgba(0,255,204,0.2);}
+        .tab-btn.ai-btn.active { background: rgba(139, 92, 246, 0.1); color: var(--neon-purple); border-color: var(--neon-purple); box-shadow: 0 0 10px rgba(139,92,246,0.2);}
+
+        .input-group { display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap;}
+        input, textarea { flex: 1; min-width: 200px; padding: 15px; background: #0a0e17; border: 1px solid #374151; color: var(--neon-green); border-radius: 6px; font-size: 16px; outline:none; font-family: 'Courier New', monospace;}
+        input:focus, textarea:focus { border-color: var(--neon-green); box-shadow: 0 0 10px rgba(0,255,204,0.2);}
+        textarea { resize: vertical; min-height: 100px; color: var(--neon-purple);}
+        
+        button { padding: 15px 25px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; transition: 0.3s;}
+        .scan-btn { background: var(--neon-green); color: var(--bg-dark); }
+        .scan-btn:hover { background: #00ccaa; box-shadow: 0 0 15px rgba(0,255,204,0.4);}
+        .ai-scan-btn { background: var(--neon-purple); color: white;}
+        .ai-scan-btn:hover { background: #7c3aed; box-shadow: 0 0 15px rgba(139,92,246,0.4);}
+        .pdf-btn { background: #374151; color: white; }
+        .pdf-btn:hover { background: #4b5563; }
+
+        /* --- SECURITY HEADERS & AUDIT STYLES --- */
+        #headersSection, #aiSection { display: none; }
+        .score-board { display: none; text-align: center; margin-bottom: 25px; padding: 20px; background: #0a0e17; border-radius: 8px; border: 1px dashed #374151; }
+        .score-grade { font-size: 48px; font-weight: bold; margin: 0; text-shadow: 0 0 15px currentColor; font-family: 'Courier New', monospace;}
+        .grade-A { color: #00ffcc; } .grade-B { color: #a3e635; } .grade-C { color: #fbbf24; } .grade-F { color: #ff3366; }
+        
+        .score-dashboard { display: none; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 30px; }
+        .score-card { background: #0a0e17; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #374151; }
+        .score-card h3 { margin: 0 0 10px 0; color: var(--text-muted); font-size: 14px; }
+        .score-card .value { font-size: 28px; font-weight: bold; color: var(--neon-green); }
+        .score-card .value.red { color: var(--neon-red); }
+        
+        .audit-category { margin-bottom: 25px; }
+        .cat-title { color: var(--neon-blue); border-bottom: 1px solid #1f2937; padding-bottom: 5px; margin-bottom: 15px; font-size: 18px;}
+        .audit-item { background: #ffffff; color: #333; border-radius: 8px; margin-bottom: 15px; overflow: hidden; }
+        .audit-header { display: flex; align-items: center; padding: 15px 20px; font-weight: bold; cursor: pointer; border-bottom: 1px solid #eee; justify-content: space-between;}
+        .audit-title-group { display: flex; align-items: center; }
+        .badge { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 800; margin-right: 15px; text-transform: uppercase;}
+        .badge-fail { background: #ffe4e6; color: #e11d48; } .badge-warn { background: #fef3c7; color: #d97706; } .badge-pass { background: #d1fae5; color: #059669; }
+        .audit-body { padding: 0 20px 20px 20px; font-size: 14px; display: none; border-top: 1px solid #eee;}
+        .box { margin-top: 10px; padding: 12px; border-radius: 6px; font-size: 13px; }
+        .box-evidence { background: #f5f3ff; border-left: 3px solid #8b5cf6; font-family: monospace; word-break: break-all; }
+        .box-law { background: #eff6ff; border-left: 3px solid #3b82f6; }
+        .box-fix { background: #ecfdf5; border-left: 3px solid #10b981; }
+
+        /* --- AI SECTION STYLES --- */
+        .ai-output-card { background: #0a0e17; padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid var(--neon-purple); display: none;}
+        .ai-output-card h3 { color: var(--neon-purple); margin-top: 0; }
+        .code-box { background: #000; padding: 15px; border-radius: 6px; color: #a3e635; font-family: monospace; font-size: 13px; overflow-x: auto; white-space: pre-wrap; margin-top: 10px; max-height: 500px; overflow-y: auto;}
+        
+        .loader { display: none; text-align: center; color: var(--neon-green); font-weight: bold; font-size: 18px; margin: 30px 0; }
+        #errorMsg { display: none; color: var(--neon-red); text-align: center; background: rgba(255,51,102,0.1); padding: 15px; border-radius: 6px; margin-bottom: 20px;}
+        
+        @media print {
+            body { background: white; color: black; display: block; padding: 0;}
+            .container { box-shadow: none; border: none; width: 100%; padding: 0; margin: 0;}
+            .tabs, .input-group, .scan-btn, .ai-scan-btn, .pdf-btn { display: none !important; }
+            .score-dashboard { display: grid !important; grid-template-columns: repeat(4, 1fr);}
+            .score-card { border: 1px solid #ccc; color: black;}
+            .audit-body { display: block !important; }
+            .cat-title { color: black; border-bottom: 2px solid black;}
+            .audit-item { border: 1px solid #ccc; page-break-inside: avoid; }
+            .header h1 { color: black; text-shadow: none;}
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 15px; width: 100%; margin-top: 0;}
+            .header h1 { font-size: 24px; }
+            .tabs { flex-direction: column; }
+            .input-group { flex-direction: column; }
+            input, textarea, button { width: 100%; box-sizing: border-box; }
+            .score-dashboard { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
+            .audit-header { font-size: 14px; padding: 12px 10px; }
+            .badge { font-size: 10px; margin-right: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>> Hexbytes.in</h1>
+            <p>AI-Powered DPDP & Security Auditor</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('audit')">18-Point Audit</button>
+            <button class="tab-btn" onclick="switchTab('headers')">Security Headers</button>
+            <button class="tab-btn ai-btn" onclick="switchTab('ai')">🤖 AI Policy Generator</button>
+        </div>
+        
+        <!-- URL Input for Audit/Headers -->
+        <div class="input-group" id="standardInputGroup">
+            <input type="text" id="urlInput" placeholder="https://example.com" onkeypress="if(event.key === 'Enter') startScan()">
+            <button class="scan-btn" onclick="startScan()">RUN SCAN</button>
+            <button class="pdf-btn" onclick="window.print()">📄 Save PDF</button>
+        </div>
+
+        <!-- AI Input Area -->
+        <div id="aiInputGroup" style="display:none; flex-direction: column; gap: 10px; margin-bottom: 25px;">
+            <input type="text" id="aiUrl" placeholder="Website URL (e.g. https://myshop.com)" style="border-color: var(--neon-purple);">
+            <textarea id="aiPrompt" placeholder="Describe your website (e.g. I sell shoes online. I collect Name, Email, and Address. I use Google Analytics.)"></textarea>
+            <button class="ai-scan-btn" onclick="generateAIPolicy()">✨ Generate Privacy Policy with AI</button>
+        </div>
+
+        <div id="loader" class="loader">[+] Processing... Please wait.</div>
+        <div id="errorMsg"></div>
+
+        <!-- DPDP Audit Section -->
+        <div id="auditSection">
+            <div id="auditResults"></div>
+        </div>
+
+        <!-- Security Headers Section -->
+        <div id="headersSection">
+            <div id="headersScoreBoard" class="score-board">
+                <h1 id="headersGradeDisplay" class="score-grade">?</h1>
+                <p class="score-text">Score: <span id="headersScoreDisplay">0</span>/100</p>
+            </div>
+            <div id="headersResultsList"></div>
+        </div>
+
+        <!-- AI Section -->
+        <div id="aiSection">
+            <div id="aiOutput" class="ai-output-card">
+                <h3>Generated DPDP Privacy Policy</h3>
+                <div class="code-box" id="aiPolicyText"></div>
+                <button style="background:var(--neon-purple); color:white; padding:10px 20px; border:none; border-radius:5px; margin-top:10px; cursor:pointer; width: auto;" onclick="copyAIText()">📋 Copy Full Policy</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 🔴 AAPKI GEMINI API KEY YAHAN HAI 🔴
+        const GEMINI_API_KEY = "AQ.Ab8RN6LP-M88akP81I_vEsbDEi-KWDOwMA7ApnvMAFN-xjcuMA";
+
+        let currentTab = 'audit';
+        let currentUrl = '';
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('auditSection').style.display = tab === 'audit' ? 'block' : 'none';
+            document.getElementById('headersSection').style.display = tab === 'headers' ? 'block' : 'none';
+            document.getElementById('aiSection').style.display = tab === 'ai' ? 'block' : 'none';
+
+            if (tab === 'ai') {
+                document.getElementById('standardInputGroup').style.display = 'none';
+                document.getElementById('aiInputGroup').style.display = 'flex';
+            } else {
+                document.getElementById('standardInputGroup').style.display = 'flex';
+                document.getElementById('aiInputGroup').style.display = 'none';
+                if (currentUrl) startScan();
+            }
+        }
+
+        function toggleAccordion(el) {
+            const body = el.nextElementSibling;
+            body.style.display = body.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function copyAIText() {
+            const text = document.getElementById('aiPolicyText').innerText;
+            navigator.clipboard.writeText(text).then(() => alert("AI Policy copied to clipboard!"));
+        }
+
+        // --- AI GENERATOR LOGIC (UPDATED FOR NEW API KEY FORMAT) ---
+        async function generateAIPolicy() {
+            const url = document.getElementById('aiUrl').value.trim();
+            const prompt = document.getElementById('aiPrompt').value.trim();
+
+            if (!prompt) return showError("Please describe your website so AI can generate the policy.");
+
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('aiOutput').style.display = 'none';
+            document.getElementById('errorMsg').style.display = 'none';
+
+            const fullPrompt = `Act as an expert Indian Cyber Lawyer. Write a strict DPDP Act 2023 compliant Privacy Policy for my website: ${url || 'my website'}. My data collection practices: ${prompt}. Include sections on Consent, Data Deletion, Grievance Officer (Sec 13), and Children's Privacy (Sec 9). Output only the text, formatted beautifully.`;
+
+            try {
+                // Naya Tarika: Key ko Header mein bheja ja raha hai (x-goog-api-key)
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-goog-api-key': GEMINI_API_KEY 
+                    },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: fullPrompt }] }]
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error.message);
+                }
+                if(!data.candidates || !data.candidates[0].content) {
+                     throw new Error("Invalid response from AI.");
+                }
+
+                const generatedText = data.candidates[0].content.parts[0].text;
+                
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('aiPolicyText').innerText = generatedText;
+                document.getElementById('aiOutput').style.display = 'block';
+
+            } catch (error) {
+                // Fallback Demo Policy agar API key fail ho jaye
+                console.log("API Error, using fallback.");
+                const demoText = `PRIVACY POLICY (DPDP ACT 2023 COMPLIANT)\n\n1. DATA COLLECTION\nWe collect the following data: ${prompt}.\n\n2. PURPOSE OF PROCESSING\nYour data is used solely to provide services related to ${url || 'our website'}.\n\n3. CONSENT (Sec 6)\nBy submitting your data, you provide free, specific, and informed consent.\n\n4. DATA DELETION (Sec 12)\nYou have the right to request deletion of your data. Email us at privacy@hexbytes.in.\n\n5. GRIEVANCE OFFICER (Sec 13)\nName: Kuldeep\nEmail: grievance@hexbytes.in\n\n6. CHILDREN'S PRIVACY (Sec 9)\nWe do not knowingly collect data from children under 18 without parental consent.`;
+                
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('aiPolicyText').innerText = demoText;
+                document.getElementById('aiOutput').style.display = 'block';
+                showError("Note: Live API failed (Key issue). Showing demo policy instead.");
+            }
+        }
+
+        // --- SCANNER LOGIC ---
+        function startScan() {
+            const urlInput = document.getElementById('urlInput').value.trim();
+            if (!urlInput) return showError("Please enter a valid URL.");
+            
+            currentUrl = urlInput.startsWith('http') ? urlInput : 'https://' + urlInput;
+            
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('errorMsg').style.display = 'none';
+            
+            if (currentTab === 'headers') runHeadersScan(currentUrl);
+            else if (currentTab === 'audit') runDPDPScan(currentUrl);
+        }
+
+        async function runHeadersScan(targetUrl) {
+            try {
+                const apiUrl = `https://api.hackertarget.com/httpheaders/?q=${encodeURIComponent(targetUrl)}`;
+                const response = await fetch(apiUrl);
+                const textData = await response.text();
+                document.getElementById('loader').style.display = 'none';
+
+                const headersConfig = [{ name: 'content-security-policy', weight: 25 }, { name: 'strict-transport-security', weight: 25 }, { name: 'x-frame-options', weight: 15 }, { name: 'x-content-type-options', weight: 15 }, { name: 'referrer-policy', weight: 10 }, { name: 'permissions-policy', weight: 10 }];
+                let html = ''; let score = 0;
+
+                headersConfig.forEach(config => {
+                    const regex = new RegExp(`^${config.name}:\\s*(.+)$`, 'im');
+                    const match = textData.match(regex);
+                    if (match) {
+                        score += config.weight;
+                        html += `<div class="result-item pass" style="margin-bottom:10px; padding:10px; background:#0a0e17; border-left:4px solid var(--neon-green);"><div style="font-weight:bold; display:flex; justify-content:space-between;"><span>✅ ${config.name}</span><span style="color:var(--neon-green)">+${config.weight} pts</span></div><div style="font-size:11px; color:var(--text-muted); margin-top:5px;">${match[1].trim()}</div></div>`;
+                    } else {
+                        html += `<div class="result-item fail" style="margin-bottom:10px; padding:10px; background:#0a0e17; border-left:4px solid var(--neon-red);"><div style="font-weight:bold; display:flex; justify-content:space-between;"><span>❌ ${config.name}</span><span style="color:var(--neon-red)">0 pts</span></div></div>`;
+                    }
+                });
+
+                document.getElementById('headersScoreDisplay').innerText = score;
+                document.getElementById('headersGradeDisplay').innerText = score >= 90 ? 'A+' : (score >= 65 ? 'B' : 'F');
+                document.getElementById('headersScoreBoard').style.display = 'block';
+                document.getElementById('headersResultsList').innerHTML = html;
+            } catch (error) {
+                document.getElementById('loader').style.display = 'none';
+                showError("Headers scan failed.");
+            }
+        }
+
+        async function runDPDPScan(targetUrl) {
+            try {
+                const response = await fetch(`https://r.jina.ai/${targetUrl}`);
+                const textContent = (await response.text()).toLowerCase();
+                document.getElementById('loader').style.display = 'none';
+
+                function findEvidence(text, keywords) {
+                    for (let kw of keywords) {
+                        const idx = text.indexOf(kw);
+                        if (idx !== -1) return `...${text.substring(Math.max(0, idx - 30), Math.min(text.length, idx + kw.length + 30)).replace(/\n/g, ' ')}...`;
+                    }
+                    return null;
+                }
+
+                const trackers = findEvidence(textContent, ['google-analytics', 'googletagmanager', 'fbq']);
+                const privacy = findEvidence(textContent, ['privacy policy']);
+                const dpo = findEvidence(textContent, ['grievance', 'dpo']);
+                
+                let html = `<div class="audit-category"><div class="cat-title">🍪 Trackers</div>`;
+                html += `<div class="audit-item"><div class="audit-header" onclick="toggleAccordion(this)"><div class="audit-title-group"><span class="badge ${trackers ? 'badge-fail' : 'badge-pass'}">${trackers ? 'FAIL' : 'PASS'}</span> <span>Cookie & Trackers</span></div><span>▼</span></div><div class="audit-body" style="display:${trackers ? 'block' : 'none'}"><div class="box box-evidence"><strong>Evidence:</strong> ${trackers || 'None found'}</div><div class="box box-fix"><strong>Fix:</strong> Use a consent banner.</div></div></div>`;
+                
+                html += `<div class="audit-category"><div class="cat-title">🛡️ Privacy</div>`;
+                html += `<div class="audit-item"><div class="audit-header" onclick="toggleAccordion(this)"><div class="audit-title-group"><span class="badge ${privacy ? 'badge-pass' : 'badge-fail'}">${privacy ? 'PASS' : 'FAIL'}</span> <span>Privacy Policy</span></div><span>▼</span></div><div class="audit-body" style="display:${privacy ? 'none' : 'block'}"><div class="box box-evidence"><strong>Evidence:</strong> ${privacy || 'Not found'}</div><div class="box box-fix"><strong>Fix:</strong> Generate one using the AI Tab!</div></div></div>`;
+
+                document.getElementById('auditResults').innerHTML = html;
+            } catch (error) {
+                document.getElementById('loader').style.display = 'none';
+                showError("Audit failed.");
+            }
+        }
+
+        function showError(msg) {
+            document.getElementById('errorMsg').innerText = msg;
+            document.getElementById('errorMsg').style.display = 'block';
+            document.getElementById('loader').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
