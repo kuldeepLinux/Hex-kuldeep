@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hexbytes - Security & DPDP Auditor</title>
+    <style>
+        :root {
+            --bg-dark: #0a0e17;
+            --panel-bg: #111827;
+            --neon-green: #00ffcc;
+            --neon-red: #ff3366;
+            --neon-yellow: #fbbf24;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: var(--panel-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.1), inset 0 0 15px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 800px;
+            border: 1px solid #1f2937;
+            margin-top: 20px;
+        }
+
+        .header { text-align: center; border-bottom: 1px solid #1f2937; padding-bottom: 15px; margin-bottom: 20px; }
+        .header h1 { color: var(--neon-green); margin: 0; font-size: 28px; font-family: 'Courier New', Courier, monospace;}
+        .header p { color: var(--text-muted); font-size: 14px; margin: 5px 0 0 0; }
+
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #1f2937; padding-bottom: 10px; }
+        .tab-btn { background: transparent; color: var(--text-muted); border: 1px solid #374151; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-family: inherit; transition: 0.3s; flex: 1; font-weight: bold; font-size: 15px;}
+        .tab-btn:hover { border-color: var(--neon-green); color: var(--neon-green); }
+        .tab-btn.active { background: rgba(0, 255, 204, 0.1); color: var(--neon-green); border-color: var(--neon-green); box-shadow: 0 0 10px rgba(0,255,204,0.2);}
+
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex: 1; padding: 12px 15px; background: #0a0e17; border: 1px solid #374151; color: var(--neon-green); border-radius: 6px; outline: none; font-size: 15px; font-family: 'Courier New', Courier, monospace;}
+        input:focus { border-color: var(--neon-green); box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);}
+        button.scan-btn { padding: 12px 25px; background: var(--neon-green); color: var(--bg-dark); border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; font-size: 15px;}
+        button.scan-btn:hover { background: #00ccaa; box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);}
+
+        /* --- SECURITY HEADERS STYLES --- */
+        .score-board { display: none; text-align: center; margin-bottom: 25px; padding: 20px; background: #0a0e17; border-radius: 8px; border: 1px dashed #374151; }
+        .score-grade { font-size: 48px; font-weight: bold; margin: 0; text-shadow: 0 0 15px currentColor; font-family: 'Courier New', Courier, monospace;}
+        .grade-A { color: #00ffcc; }
+        .grade-B { color: #a3e635; }
+        .grade-C { color: #fbbf24; }
+        .grade-F { color: #ff3366; }
+        .score-text { color: var(--text-muted); font-size: 14px; margin-top: 5px; }
+
+        .result-item { margin-bottom: 10px; padding: 10px 15px; background: #0a0e17; border-radius: 6px; border-left: 4px solid; display: flex; flex-direction: column; }
+        .result-item.pass { border-left-color: var(--neon-green); }
+        .result-item.fail { border-left-color: var(--neon-red); }
+        .header-name { font-weight: bold; display: flex; justify-content: space-between; align-items: center; font-family: 'Courier New', Courier, monospace;}
+        .header-value { font-size: 11px; color: var(--text-muted); margin-top: 5px; word-break: break-all; font-family: 'Courier New', Courier, monospace;}
+
+        .raw-toggle { display: none; margin-top: 20px; text-align: center; }
+        .raw-btn { font-size: 12px; padding: 8px 15px; border-color: var(--text-muted); color: var(--text-muted); background: transparent; border: 1px solid; border-radius: 6px; cursor: pointer; }
+        .raw-btn:hover { background: var(--text-muted); color: var(--bg-dark); }
+        pre { display: none; background: #000000; padding: 15px; border-radius: 6px; overflow-x: auto; color: #a3e635; font-size: 12px; margin-top: 15px; border: 1px solid #1f2937; white-space: pre-wrap; font-family: 'Courier New', Courier, monospace;}
+
+        /* --- DPDP AUDIT STYLES --- */
+        .audit-item { background: #ffffff; color: #333; border-radius: 8px; margin-bottom: 15px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .audit-header { display: flex; align-items: center; padding: 15px 20px; font-weight: bold; font-size: 16px; cursor: pointer; border-bottom: 1px solid #eee; transition: background 0.2s;}
+        .audit-header:hover { background: #f9fafb; }
+        .badge { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 800; margin-right: 15px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge-fail { background: #ffe4e6; color: #e11d48; }
+        .badge-warn { background: #fef3c7; color: #d97706; }
+        .badge-pass { background: #d1fae5; color: #059669; }
+        
+        .audit-body { padding: 0 20px 20px 20px; font-size: 14px; line-height: 1.6; display: none;}
+        .audit-body strong { color: #1f2937; }
+        
+        .law-text, .fix-text, .evidence-text { margin-top: 10px; padding: 10px; border-radius: 6px; background: #f9fafb; border-left: 3px solid #6b7280; font-size: 13px; }
+        .law-text { border-left-color: #3b82f6; background: #eff6ff; }
+        .fix-text { border-left-color: #10b981; background: #ecfdf5; }
+        
+        /* Evidence Style */
+        .evidence-text { border-left-color: #8b5cf6; background: #f5f3ff; font-family: 'Courier New', Courier, monospace; word-break: break-all;}
+
+        .loader { display: none; color: var(--neon-green); text-align: center; font-weight: bold; margin: 20px 0; font-family: 'Courier New', Courier, monospace;}
+        .error-msg { color: var(--neon-red); text-align: center; display: none; margin-bottom: 15px; background: rgba(255,51,102,0.1); padding: 10px; border-radius: 6px; font-family: 'Courier New', Courier, monospace;}
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>> Hexbytes.in</h1>
+            <p>Security & DPDP Compliance Analyzer</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('headers')">Security Headers</button>
+            <button class="tab-btn" onclick="switchTab('dpdp')">DPDP Audit</button>
+        </div>
+        
+        <div class="input-group">
+            <input type="text" id="urlInput" placeholder="https://example.com" onkeypress="if(event.key === 'Enter') startScan()">
+            <button class="scan-btn" onclick="startScan()">SCAN</button>
+        </div>
+
+        <div id="loader" class="loader">[+] Analyzing Target... Please wait.</div>
+        <div id="errorMsg" class="error-msg"></div>
+
+        <!-- Security Headers Section -->
+        <div id="headersSection" style="display: block;">
+            <div id="headersScoreBoard" class="score-board">
+                <h1 id="headersGradeDisplay" class="score-grade">?</h1>
+                <p class="score-text">Score: <span id="headersScoreDisplay">0</span>/100</p>
+            </div>
+            <div id="headersResultsList"></div>
+            
+            <div id="rawToggle" class="raw-toggle">
+                <button class="raw-btn" onclick="toggleRaw()">View Raw Server Headers</button>
+                <pre id="rawData"></pre>
+            </div>
+        </div>
+
+        <!-- DPDP Section -->
+        <div id="dpdpSection" style="display: none;">
+            <div id="dpdpResultsList"></div>
+        </div>
+
+    </div>
+
+    <script>
+        let currentTab = 'headers';
+        let currentUrl = '';
+
+        function toggleAccordion(element) {
+            const body = element.nextElementSibling;
+            if (body.style.display === 'none' || body.style.display === '') {
+                body.style.display = 'block';
+            } else {
+                body.style.display = 'none';
+            }
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (tab === 'headers') {
+                document.getElementById('headersSection').style.display = 'block';
+                document.getElementById('dpdpSection').style.display = 'none';
+            } else {
+                document.getElementById('headersSection').style.display = 'none';
+                document.getElementById('dpdpSection').style.display = 'block';
+            }
+            
+            if(currentUrl) {
+                startScan();
+            }
+        }
+
+        function startScan() {
+            if (currentTab === 'headers') {
+                checkHeaders();
+            } else {
+                checkDPDP();
+            }
+        }
+
+        // ==========================================
+        // 1. SECURITY HEADERS LOGIC
+        // ==========================================
+        async function checkHeaders() {
+            const urlInput = document.getElementById('urlInput').value.trim();
+            if (!urlInput) return showError("Please enter a valid URL.");
+            
+            currentUrl = urlInput;
+            let targetUrl = currentUrl;
+            if (!/^https?:\/\//i.test(targetUrl)) targetUrl = 'https://' + targetUrl;
+
+            resetUI();
+
+            try {
+                const apiUrl = `https://api.hackertarget.com/httpheaders/?q=${encodeURIComponent(targetUrl)}`;
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error("Network error");
+                const textData = await response.text();
+
+                if (textData.includes('error') || textData.includes('API count exceeded')) throw new Error("Target down or API limit reached.");
+
+                document.getElementById('loader').style.display = 'none';
+
+                const headersConfig = [
+                    { name: 'content-security-policy', weight: 25 },
+                    { name: 'strict-transport-security', weight: 25 },
+                    { name: 'x-frame-options', weight: 15 },
+                    { name: 'x-content-type-options', weight: 15 },
+                    { name: 'referrer-policy', weight: 10 },
+                    { name: 'permissions-policy', weight: 10 }
+                ];
+
+                let html = '';
+                let score = 0;
+
+                headersConfig.forEach(config => {
+                    const regex = new RegExp(`^${config.name}:\\s*(.+)$`, 'im');
+                    const match = textData.match(regex);
+                    
+                    if (match) {
+                        score += config.weight;
+                        html += `<div class="result-item pass"><div class="header-name"><span>✅ ${config.name}</span><span style="color: var(--neon-green); font-size: 12px;">+${config.weight} pts</span></div><div class="header-value">${match[1].trim()}</div></div>`;
+                    } else {
+                        html += `<div class="result-item fail"><div class="header-name"><span>❌ ${config.name}</span><span style="color: var(--neon-red); font-size: 12px;">0 pts</span></div><div class="header-value">Missing Header</div></div>`;
+                    }
+                });
+
+                let grade = 'F', gradeClass = 'grade-F';
+                if (score >= 90) { grade = 'A+'; gradeClass = 'grade-A'; }
+                else if (score >= 80) { grade = 'A'; gradeClass = 'grade-A'; }
+                else if (score >= 65) { grade = 'B'; gradeClass = 'grade-B'; }
+                else if (score >= 50) { grade = 'C'; gradeClass = 'grade-C'; }
+
+                document.getElementById('headersScoreDisplay').innerText = score;
+                const gradeEl = document.getElementById('headersGradeDisplay');
+                gradeEl.innerText = grade;
+                gradeEl.className = `score-grade ${gradeClass}`;
+                
+                document.getElementById('headersScoreBoard').style.display = 'block';
+                const listEl = document.getElementById('headersResultsList');
+                listEl.innerHTML = html;
+                listEl.style.display = 'block';
+
+                document.getElementById('rawData').innerText = textData;
+                document.getElementById('rawToggle').style.display = 'block';
+
+            } catch (error) {
+                document.getElementById('loader').style.display = 'none';
+                showError("Headers scan failed. Target might be down or blocking the scanner.");
+            }
+        }
+
+        // ==========================================
+        // 2. ADVANCED DPDP AUDIT LOGIC WITH EVIDENCE
+        // ==========================================
+        async function checkDPDP() {
+            const urlInput = document.getElementById('urlInput').value.trim();
+            if (!urlInput) return showError("Please enter a valid URL.");
+            
+            currentUrl = urlInput;
+            let targetUrl = currentUrl;
+            if (!/^https?:\/\//i.test(targetUrl)) targetUrl = 'https://' + targetUrl;
+
+            resetUI();
+
+            try {
+                const proxyUrl = `https://r.jina.ai/${targetUrl}`;
+                const response = await fetch(proxyUrl);
+                
+                if (!response.ok) throw new Error("Network error");
+                
+                const textContent = (await response.text()).toLowerCase();
+                document.getElementById('loader').style.display = 'none';
+
+                // Helper function to extract small text snippet as proof
+                function findEvidence(text, keywords) {
+                    for (let kw of keywords) {
+                        const idx = text.indexOf(kw);
+                        if (idx !== -1) {
+                            // Extract 40 chars before and after the keyword
+                            const start = Math.max(0, idx - 40);
+                            const end = Math.min(text.length, idx + kw.length + 40);
+                            return `...${text.substring(start, end).replace(/\n/g, ' ')}...`;
+                        }
+                    }
+                    return null;
+                }
+
+                // Check conditions and gather evidence
+                const analyticsEvidence = findEvidence(textContent, ['google-analytics', 'googletagmanager', 'fbq']);
+                const withdrawEvidence = findEvidence(textContent, ['withdraw consent', 'manage preferences']);
+                const langEvidence = findEvidence(textContent, ['hindi', 'हिंदी']);
+                const privacyEvidence = findEvidence(textContent, ['privacy-policy', 'privacy policy']);
+                const dpoEvidence = findEvidence(textContent, ['grievance', 'dpo', 'data protection officer']);
+
+                const auditChecks = [
+                    {
+                        title: "No tracking before consent",
+                        status: "fail",
+                        desc: "Trackers are running without any visible consent step: Google Analytics; cookies: _ga, _fbp.",
+                        law: "Sec 4, 6 & 7 — process personal data only with consent or for a listed legitimate use.",
+                        fix: "Block analytics and ad tags until consent (e.g., Google Consent Mode v2 set to 'denied' by default).",
+                        condition: analyticsEvidence !== null,
+                        evidence: analyticsEvidence ? `Found tracker script: "${analyticsEvidence}"` : "No analytics scripts found in HTML."
+                    },
+                    {
+                        title: "Explains how to withdraw consent",
+                        status: "fail",
+                        desc: "No explanation of how to withdraw consent was found.",
+                        law: "Sec 5(1)(ii), 6(4) & Rule 3 — withdrawing consent must be as easy as giving it.",
+                        fix: "Add a one-click 'Withdraw consent' / 'Manage preferences' link and describe it in the notice.",
+                        condition: withdrawEvidence !== null,
+                        evidence: withdrawEvidence ? `Found text: "${withdrawEvidence}"` : "No 'withdraw consent' text found on page."
+                    },
+                    {
+                        title: "Notice available in Indian languages",
+                        status: "warn",
+                        desc: "No Indian-language option was detected.",
+                        law: "Sec 5(3) — the data principal must be able to read the notice in English or any language in the Eighth Schedule.",
+                        fix: "Offer the notice in Hindi and in the main languages of your audience.",
+                        condition: langEvidence !== null,
+                        evidence: langEvidence ? `Found text: "${langEvidence}"` : "No Hindi language options detected in HTML."
+                    },
+                    {
+                        title: "Secure connection (HTTPS)",
+                        status: "pass",
+                        desc: "Website is using a secure HTTPS connection.",
+                        law: "Sec 8(5) — reasonable security safeguards must be implemented.",
+                        fix: "N/A - Already secure.",
+                        condition: targetUrl.startsWith('https://'),
+                        evidence: targetUrl.startsWith('https://') ? `URL starts with https://` : "URL is unsecure (http://)"
+                    },
+                    {
+                        title: "Privacy notice is published and reachable",
+                        status: "pass",
+                        desc: "Privacy policy link was found in the page content.",
+                        law: "Sec 5(1) — Notice must be given before requesting consent.",
+                        fix: "N/A - Found.",
+                        condition: privacyEvidence !== null,
+                        evidence: privacyEvidence ? `Found link text: "${privacyEvidence}"` : "No Privacy Policy link found."
+                    },
+                    {
+                        title: "Grievance officer / DPO contact published",
+                        status: "pass",
+                        desc: "Grievance officer or DPO contact details are mentioned.",
+                        law: "Sec 13 — Data Fiduciary must publish the contact details of the DPO.",
+                        fix: "N/A - Found.",
+                        condition: dpoEvidence !== null,
+                        evidence: dpoEvidence ? `Found text: "${dpoEvidence}"` : "No DPO/Grievance text found."
+                    }
+                ];
+
+                let html = '';
+
+                auditChecks.forEach(check => {
+                    let finalStatus = check.condition ? 'pass' : check.status;
+                    let badgeClass = `badge-${finalStatus}`;
+                    let bodyDisplay = finalStatus === 'fail' || finalStatus === 'warn' ? 'block' : 'none';
+
+                    html += `
+                    <div class="audit-item">
+                        <div class="audit-header" onclick="toggleAccordion(this)">
+                            <span class="badge ${badgeClass}">${finalStatus}</span>
+                            <span>${check.title}</span>
+                        </div>
+                        <div class="audit-body" style="display: ${bodyDisplay};">
+                            <p>${check.desc}</p>
+                            
+                            <!-- Evidence Box -->
+                            <div class="evidence-text">
+                                <strong>Evidence (How we know this):</strong> <br>
+                                ${check.evidence}
+                            </div>
+
+                            <div class="law-text">
+                                <strong>Law:</strong> ${check.law}
+                            </div>
+                            <div class="fix-text">
+                                <strong>Fix:</strong> ${check.fix}
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                });
+
+                const summaryHtml = `
+                    <div style="margin-bottom: 20px; padding: 15px; background: rgba(0,255,204,0.1); border-radius: 8px; border: 1px solid var(--neon-green); color: var(--neon-green); font-size: 14px; text-align: center; font-family: 'Courier New', Courier, monospace;">
+                        <strong>Audit Complete for: ${targetUrl}</strong><br>
+                        Click on each item to see the Evidence, Law and Fix.
+                    </div>
+                `;
+
+                document.getElementById('dpdpResultsList').innerHTML = summaryHtml + html;
+
+            } catch (error) {
+                document.getElementById('loader').style.display = 'none';
+                showError("DPDP Audit failed. Target might be blocking the scanner or is down.");
+            }
+        }
+
+        // ==========================================
+        // HELPERS
+        // ==========================================
+        function resetUI() {
+            document.getElementById('errorMsg').style.display = 'none';
+            document.getElementById('headersScoreBoard').style.display = 'none';
+            document.getElementById('headersResultsList').innerHTML = '';
+            document.getElementById('dpdpResultsList').innerHTML = '';
+            document.getElementById('rawToggle').style.display = 'none';
+            document.getElementById('loader').style.display = 'block';
+        }
+
+        function showError(msg) {
+            const errorEl = document.getElementById('errorMsg');
+            errorEl.innerText = `[-] ${msg}`;
+            errorEl.style.display = 'block';
+            document.getElementById('loader').style.display = 'none';
+        }
+
+        function toggleRaw() {
+            const rawData = document.getElementById('rawData');
+            rawData.style.display = rawData.style.display === 'block' ? 'none' : 'block';
+        }
+    </script>
+</body>
+</html>
