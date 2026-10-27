@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hexbytes - Security & Privacy Auditor</title>
+    <style>
+        :root {
+            --bg-dark: #0a0e17;
+            --panel-bg: #111827;
+            --neon-green: #00ffcc;
+            --neon-red: #ff3366;
+            --neon-yellow: #fbbf24;
+            --neon-blue: #3b82f6;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0; padding: 20px;
+            display: flex; justify-content: center;
+        }
+
+        .container {
+            background-color: var(--panel-bg);
+            padding: 30px; border-radius: 12px;
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.1);
+            width: 100%; max-width: 900px;
+            border: 1px solid #1f2937;
+            margin-bottom: 50px;
+        }
+
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 1px solid #1f2937; padding-bottom: 15px;}
+        .header h1 { color: var(--neon-green); margin: 0; font-size: 32px; font-family: 'Courier New', monospace; text-shadow: 0 0 10px rgba(0,255,204,0.3);}
+        .header p { color: var(--text-muted); font-size: 14px; margin-top: 5px;}
+        
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;}
+        .tab-btn { background: transparent; color: var(--text-muted); border: 1px solid #374151; padding: 12px; border-radius: 6px; cursor: pointer; flex: 1; font-weight: bold; transition: 0.3s; font-size: 15px;}
+        .tab-btn:hover { border-color: var(--neon-green); color: var(--neon-green);}
+        .tab-btn.active { background: rgba(0, 255, 204, 0.1); color: var(--neon-green); border-color: var(--neon-green); box-shadow: 0 0 10px rgba(0,255,204,0.2);}
+
+        .input-group { display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap;}
+        input { flex: 1; min-width: 200px; padding: 15px; background: #0a0e17; border: 1px solid #374151; color: var(--neon-green); border-radius: 6px; font-size: 16px; outline:none; font-family: 'Courier New', monospace;}
+        input:focus { border-color: var(--neon-green); box-shadow: 0 0 10px rgba(0,255,204,0.2);}
+        
+        button { padding: 15px 25px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; transition: 0.3s;}
+        .scan-btn { background: var(--neon-green); color: var(--bg-dark); }
+        .scan-btn:hover { background: #00ccaa; box-shadow: 0 0 15px rgba(0,255,204,0.4);}
+        .pdf-btn { background: #374151; color: white; }
+        .pdf-btn:hover { background: #4b5563; }
+
+        /* --- SECURITY HEADERS STYLES --- */
+        #headersSection { display: none; }
+        .score-board { display: none; text-align: center; margin-bottom: 25px; padding: 20px; background: #0a0e17; border-radius: 8px; border: 1px dashed #374151; }
+        .score-grade { font-size: 48px; font-weight: bold; margin: 0; text-shadow: 0 0 15px currentColor; font-family: 'Courier New', monospace;}
+        .grade-A { color: #00ffcc; }
+        .grade-B { color: #a3e635; }
+        .grade-C { color: #fbbf24; }
+        .grade-F { color: #ff3366; }
+        .score-text { color: var(--text-muted); font-size: 14px; margin-top: 5px; }
+
+        .result-item { margin-bottom: 10px; padding: 10px 15px; background: #0a0e17; border-radius: 6px; border-left: 4px solid; display: flex; flex-direction: column; }
+        .result-item.pass { border-left-color: var(--neon-green); }
+        .result-item.fail { border-left-color: var(--neon-red); }
+        .header-name { font-weight: bold; display: flex; justify-content: space-between; align-items: center; font-family: 'Courier New', monospace;}
+        .header-value { font-size: 11px; color: var(--text-muted); margin-top: 5px; word-break: break-all; font-family: 'Courier New', monospace;}
+
+        .raw-toggle { display: none; margin-top: 20px; text-align: center; }
+        .raw-btn { font-size: 12px; padding: 8px 15px; border-color: var(--text-muted); color: var(--text-muted); background: transparent; border: 1px solid; border-radius: 6px; cursor: pointer; }
+        .raw-btn:hover { background: var(--text-muted); color: var(--bg-dark); }
+        pre { display: none; background: #000000; padding: 15px; border-radius: 6px; overflow-x: auto; color: #a3e635; font-size: 12px; margin-top: 15px; border: 1px solid #1f2937; white-space: pre-wrap; font-family: 'Courier New', monospace;}
+
+        /* --- DPDP AUDIT STYLES --- */
+        #auditSection { display: block; }
+        .score-dashboard { display: none; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 30px; }
+        .score-card { background: #0a0e17; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #374151; }
+        .score-card h3 { margin: 0 0 10px 0; color: var(--text-muted); font-size: 14px; }
+        .score-card .value { font-size: 28px; font-weight: bold; color: var(--neon-green); }
+        .score-card .value.red { color: var(--neon-red); }
+        
+        .audit-category { margin-bottom: 25px; }
+        .cat-title { color: var(--neon-blue); border-bottom: 1px solid #1f2937; padding-bottom: 5px; margin-bottom: 15px; font-size: 18px;}
+
+        .audit-item { background: #ffffff; color: #333; border-radius: 8px; margin-bottom: 15px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .audit-header { display: flex; align-items: center; padding: 15px 20px; font-weight: bold; cursor: pointer; border-bottom: 1px solid #eee; }
+        .audit-header:hover { background: #f9fafb;}
+        .badge { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 800; margin-right: 15px; text-transform: uppercase;}
+        .badge-fail { background: #ffe4e6; color: #e11d48; }
+        .badge-warn { background: #fef3c7; color: #d97706; }
+        .badge-pass { background: #d1fae5; color: #059669; }
+        
+        .audit-body { padding: 0 20px 20px 20px; font-size: 14px; display: none; }
+        .box { margin-top: 10px; padding: 12px; border-radius: 6px; font-size: 13px; }
+        .box-evidence { background: #f5f3ff; border-left: 3px solid #8b5cf6; font-family: monospace; word-break: break-all; }
+        .box-law { background: #eff6ff; border-left: 3px solid #3b82f6; }
+        .box-fix { background: #ecfdf5; border-left: 3px solid #10b981; }
+
+        /* --- FIX GENERATOR STYLES --- */
+        #fixSection { display: none; }
+        .fix-card { background: #0a0e17; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #374151; }
+        .fix-card h3 { color: var(--neon-green); margin-top: 0; }
+        .code-box { background: #000; padding: 15px; border-radius: 6px; color: #a3e635; font-family: monospace; font-size: 13px; overflow-x: auto; white-space: pre-wrap; margin-top: 10px;}
+        .copy-btn { background: var(--neon-green); color: #000; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 13px;}
+
+        .loader { display: none; text-align: center; color: var(--neon-green); font-weight: bold; font-size: 18px; margin: 30px 0; font-family: 'Courier New', monospace;}
+        #errorMsg { display: none; color: var(--neon-red); text-align: center; background: rgba(255,51,102,0.1); padding: 15px; border-radius: 6px; margin-bottom: 20px;}
+        
+        /* Print/PDF Mode */
+        @media print {
+            body { background: white; color: black; display: block; padding: 0;}
+            .container { box-shadow: none; border: none; width: 100%; max-width: 100%; padding: 0; margin: 0;}
+            .tabs, .input-group, .scan-btn, .copy-btn, .pdf-btn { display: none !important; }
+            .score-card { border: 1px solid #ccc; color: black;}
+            .score-card .value { color: black; }
+            .audit-body { display: block !important; }
+            .cat-title { color: black; }
+            .audit-item { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
+            .header h1 { color: black; text-shadow: none;}
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>> Hexbytes.in</h1>
+            <p>Security Headers & DPDP Privacy Audit Platform</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('audit')">DPDP Privacy Audit</button>
+            <button class="tab-btn" onclick="switchTab('headers')">Security Headers</button>
+            <button class="tab-btn" onclick="switchTab('fixes')">DPDP Fix Generator</button>
+        </div>
+        
+        <div class="input-group">
+            <input type="text" id="urlInput" placeholder="https://example.com" onkeypress="if(event.key === 'Enter') startScan()">
+            <button class="scan-btn" onclick="startScan()">RUN SCAN</button>
+            <button class="pdf-btn" onclick="window.print()">📄 Save as PDF</button>
+        </div>
+
+        <div id="loader" class="loader">[+] Analyzing Target... Please wait.</div>
+        <div id="errorMsg"></div>
+
+        <!-- DPDP Audit Section -->
+        <div id="auditSection">
+            <div id="auditResults"></div>
+        </div>
+
+        <!-- Security Headers Section -->
+        <div id="headersSection">
+            <div id="headersScoreBoard" class="score-board">
+                <h1 id="headersGradeDisplay" class="score-grade">?</h1>
+                <p class="score-text">Score: <span id="headersScoreDisplay">0</span>/100</p>
+            </div>
+            <div id="headersResultsList"></div>
+            
+            <div id="rawToggle" class="raw-toggle">
+                <button class="raw-btn" onclick="toggleRaw()">View Raw Server Headers</button>
+                <pre id="rawData"></pre>
+            </div>
+        </div>
+
+        <!-- Fix Generator Section -->
+        <div id="fixSection">
+            <div class="fix-card">
+                <h3>1. Privacy Policy Template (Bilingual)</h3>
+                <p>Copy this basic template and customize it according to your data practices.</p>
+                <div class="code-box" id="privacyPolicyCode">Loading...</div>
+                <button class="copy-btn" onclick="copyText('privacyPolicyCode')">Copy Code</button>
+            </div>
+
+            <div class="fix-card">
+                <h3>2. DPDP Consent Banner HTML/JS</h3>
+                <p>Add this code before the <code>&lt;/body&gt;</code> tag of your website to ensure consent is taken before tracking.</p>
+                <div class="code-box" id="consentBannerCode">Loading...</div>
+                <button class="copy-btn" onclick="copyText('consentBannerCode')">Copy Code</button>
+            </div>
+
+            <div class="fix-card">
+                <h3>3. Grievance Officer Contact Section</h3>
+                <p>Mandatory under Section 13 of DPDP Act.</p>
+                <div class="code-box" id="grievanceCode">Loading...</div>
+                <button class="copy-btn" onclick="copyText('grievanceCode')">Copy Code</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'audit';
+        let currentUrl = '';
+
+        // --- FIX GENERATOR TEXT ---
+        document.getElementById('privacyPolicyCode').innerText = `Privacy Policy / गोपनीयता नीति\n\n1. Data Collection (डेटा संग्रह): We collect [Email, Name, etc] for [Purpose].\n2. Consent (सहमति): By using this site, you agree to our terms.\n3. Withdrawal (सहमति वापस लेना): You can withdraw consent by emailing us at [Email].\n\n(Note: Customize this text based on your actual backend data processing.)`;
+        
+        document.getElementById('consentBannerCode').innerText = `<!-- DPDP Consent Banner -->\n<div id="dpdp-consent" style="position:fixed; bottom:0; width:100%; background:#111; color:#fff; padding:20px; text-align:center; z-index:9999;">\n  <p>We use cookies to improve your experience. By clicking "Accept", you consent to our Privacy Policy.</p>\n  <button onclick="acceptConsent()" style="background:#00ffcc; padding:10px 20px; border:none; cursor:pointer;">Accept</button>\n  <button onclick="rejectConsent()" style="background:#ff3366; color:#fff; padding:10px 20px; border:none; cursor:pointer;">Reject</button>\n</div>\n\n<script>\n  // Add logic to block Google Analytics here until consent is given\n  function acceptConsent() { document.getElementById('dpdp-consent').style.display = 'none'; }\n  function rejectConsent() { document.getElementById('dpdp-consent').style.display = 'none'; }\n<\/script>`;
+
+        document.getElementById('grievanceCode').innerText = `<div class="grievance-officer">\n  <h3>Grievance Officer / शिकायत अधिकारी</h3>\n  <p>Name: [Your Name]<br>Email: grievance@yourdomain.com<br>Address: [Office Address]</p>\n</div>`;
+
+        // --- UI FUNCTIONS ---
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('auditSection').style.display = tab === 'audit' ? 'block' : 'none';
+            document.getElementById('headersSection').style.display = tab === 'headers' ? 'block' : 'none';
+            document.getElementById('fixSection').style.display = tab === 'fixes' ? 'block' : 'none';
+
+            if (currentUrl && tab !== 'fixes') startScan();
+        }
+
+        function toggleAccordion(el) {
+            const body = el.nextElementSibling;
+            body.style.display = body.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function toggleRaw() {
+            const rawData = document.getElementById('rawData');
+            rawData.style.display = rawData.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function copyText(id) {
+            const text = document.getElementById(id).innerText;
+            navigator.clipboard.writeText(text).then(() => alert("Code copied to clipboard!"));
+        }
+
+        function startScan() {
+            const urlInput = document.getElementById('urlInput').value.trim();
+            if (!urlInput) return showError("Please enter a valid URL.");
+            
+            currentUrl = urlInput.startsWith('http') ? urlInput : 'https://' + urlInput;
+            
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('errorMsg').style.display = 'none';
+            document.getElementById('auditResults').innerHTML = '';
+            document.getElementById('headersResultsList').innerHTML = '';
+            document.getElementById('headersScoreBoard').style.display = 'none';
+
+            if (currentTab === 'headers') {
+                runHeadersScan(currentUrl);
+            } else if (currentTab === 'audit') {
+                runDPDPScan(currentUrl);
+            }
+        }
+
+        // --- 1. SECURITY HEADERS SCANNER ---
+        async function runHeadersScan(targetUrl) {
+            try {
+                const apiUrl = `https://api.hackertarget.com/httpheaders/?q=${encodeURIComponent(targetUrl)}`;
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error("Network error");
+                const textData = await response.text();
+
+                if (textData.includes('error') || textData.includes('API count exceeded')) throw new Error("Target down or API limit reached.");
+                document.getElementById('loader').style.display = 'none';
+
+                const headersConfig = [
+                    { name: 'content-security-policy', weight: 25 },
+                    { name: 'strict-transport-security', weight: 25 },
+                    { name: 'x-frame-options', weight: 15 },
+                    { name: 'x-content-type-options', weight: 15 },
+                    { name: 'referrer-policy', weight: 10 },
+                    { name: 'permissions-policy', weight: 10 }
+                ];
+
+                let html = '';
+                let score = 0;
+
+                headersConfig.forEach(config => {
+                    const regex = new RegExp(`^${config.name}:\\s*(.+)$`, 'im');
+                    const match = textData.match(regex);
+                    
+                    if (match) {
+                        score += config.weight;
+                        html += `<div class="result-item pass"><div class="header-name"><span>✅ ${config.name}</span><span style="color: var(--neon-green); font-size: 12px;">+${config.weight} pts</span></div><div class="header-value">${match[1].trim()}</div></div>`;
+                    } else {
+                        html += `<div class="result-item fail"><div class="header-name"><span>❌ ${config.name}</span><span style="color: var(--neon-red); font-size: 12px;">0 pts</span></div><div class="header-value">Missing Header</div></div>`;
+                    }
+                });
+
+                let grade = 'F', gradeClass = 'grade-F';
+                if (score >= 90) { grade = 'A+'; gradeClass = 'grade-A'; }
+                else if (score >= 80) { grade = 'A'; gradeClass = 'grade-A'; }
+                else if (score >= 65) { grade = 'B'; gradeClass = 'grade-B'; }
+                else if (score >= 50) { grade = 'C'; gradeClass = 'grade-C'; }
+
+                document.getElementById('headersScoreDisplay').innerText = score;
+                const gradeEl = document.getElementById('headersGradeDisplay');
+                gradeEl.innerText = grade;
+                gradeEl.className = `score-grade ${gradeClass}`;
+                
+                document.getElementById('headersScoreBoard').style.display = 'block';
+                document.getElementById('headersResultsList').innerHTML = html;
+                document.getElementById('rawData').innerText = textData;
+                document.getElementById('rawToggle').style.display = 'block';
+
+            } catch (error) {
+                document.getElementById('loader').style.display = 'none';
+                showError("Headers scan failed. Target might be down or blocking the scanner.");
+            }
+        }
+
+        // --- 2. DPDP AUDIT SCANNER ---
+        async function runDPDPScan(targetUrl) {
+            try {
+                const proxyUrl = `https://r.jina.ai/${targetUrl}`;
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error("Network error");
+                
+                const textContent = (await response.text()).toLowerCase();
+                document.getElementById('loader').style.display = 'none';
+
+                function findEvidence(text, keywords) {
+                    for (let kw of keywords) {
+                        const idx = text.indexOf(kw);
+                        if (idx !== -1) {
+                            const start = Math.max(0, idx - 30);
+                            const end = Math.min(text.length, idx + kw.length + 30);
+                            return `...${text.substring(start, end).replace(/\n/g, ' ')}...`;
+                        }
+                    }
+                    return null;
+                }
+
+                const trackers = findEvidence(textContent, ['google-analytics', 'googletagmanager', 'fbq', 'hotjar']);
+                const privacy = findEvidence(textContent, ['privacy policy', 'privacy-policy']);
+                const dpo = findEvidence(textContent, ['grievance', 'dpo', 'data protection officer']);
+                const withdraw = findEvidence(textContent, ['withdraw consent', 'manage preferences', 'opt-out']);
+                const lang = findEvidence(textContent, ['hindi', 'हिंदी', 'regional language']);
+
+                let privacyScore = 0, consentScore = 0, trackingScore = 0, securityScore = 0;
+                if(privacy) privacyScore += 40;
+                if(dpo) privacyScore += 60;
+                if(!trackers) consentScore += 50;
+                if(withdraw) consentScore += 50;
+                if(trackers) trackingScore = 20; else trackingScore = 100;
+                if(targetUrl.startsWith('https')) securityScore += 100;
+
+                let html = `
+                <div class="score-dashboard" style="display:grid;">
+                    <div class="score-card"><h3>Privacy</h3><div class="value ${privacyScore < 50 ? 'red' : ''}">${privacyScore}/100</div></div>
+                    <div class="score-card"><h3>Consent</h3><div class="value ${consentScore < 50 ? 'red' : ''}">${consentScore}/100</div></div>
+                    <div class="score-card"><h3>Tracking</h3><div class="value ${trackingScore < 50 ? 'red' : ''}">${trackingScore}/100</div></div>
+                    <div class="score-card"><h3>Security</h3><div class="value ${securityScore < 50 ? 'red' : ''}">${securityScore}/100</div></div>
+                </div>
+                
+                <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 5px; margin-bottom: 20px; font-size: 12px; color: var(--text-muted);">
+                    <strong>Disclaimer:</strong> This is an estimated technical compliance score based on automated scans. It is not an official government certification. Manual legal review is required.
+                </div>
+                
+                <div class="audit-category">
+                    <div class="cat-title">🛡️ Data Privacy & Notice</div>
+                `;
+
+                const makeCard = (status, title, desc, evidence, law, fix) => {
+                    let badge = status === 'pass' ? 'badge-pass' : (status === 'fail' ? 'badge-fail' : 'badge-warn');
+                    let display = status === 'pass' ? 'none' : 'block';
+                    return `
+                    <div class="audit-item">
+                        <div class="audit-header" onclick="toggleAccordion(this)">
+                            <span class="badge ${badge}">${status}</span><span>${title}</span>
+                        </div>
+                        <div class="audit-body" style="display:${display}">
+                            <p>${desc}</p>
+                            <div class="box box-evidence"><strong>Evidence:</strong><br>${evidence || 'Not found on page.'}</div>
+                            <div class="box box-law"><strong>Legal Provision:</strong><br>${law}</div>
+                            <div class="box box-fix"><strong>Suggested Fix:</strong><br>${fix}</div>
+                        </div>
+                    </div>`;
+                };
+
+                html += makeCard(privacy ? 'pass' : 'fail', 'Privacy Policy Published', 
+                    'Is there a reachable privacy notice?', privacy, 
+                    'Section 5(1) - Notice must be given before requesting consent.', 
+                    'Create a dedicated Privacy Policy page and link it in the footer.');
+
+                html += makeCard(dpo ? 'pass' : 'fail', 'Grievance Officer / DPO Contact', 
+                    'Is contact info for data queries available?', dpo, 
+                    'Section 13 - Data Fiduciary must publish DPO contact.', 
+                    'Add a "Grievance Officer" section in the footer with email and address.');
+
+                html += `</div><div class="audit-category"><div class="cat-title">🍪 Consent & Tracking</div>`;
+
+                html += makeCard(trackers ? 'fail' : 'pass', 'Tracking Scripts Before Consent', 
+                    'Are analytics or ad pixels running without a consent banner?', trackers ? `Found script: ${trackers}` : 'No trackers detected.', 
+                    'Section 6 - Consent must be free, specific, and informed.', 
+                    'Implement a consent banner and block Google Analytics (via Google Tag Manager) until the user clicks "Accept".');
+
+                html += makeCard(withdraw ? 'pass' : 'fail', 'Consent Withdrawal Mechanism', 
+                    'Can users easily withdraw their consent?', withdraw, 
+                    'Section 6(4) - Withdrawal must be as easy as giving consent.', 
+                    'Add a "Manage Preferences" or "Opt-out" link in the footer or privacy policy.');
+
+                html += makeCard(lang ? 'pass' : 'warn', 'Notice Available in Indian Languages', 
+                    'Is the privacy notice available in Hindi or regional languages?', lang, 
+                    'Section 5(3) - Notice must be available in English or 8th Schedule languages.', 
+                    'Add a language toggle (e.g., English / हिंदी) to your privacy policy page.');
+
+                html += `</div>`;
+
+                document.getElementById('auditResults').innerHTML = html;
+
+            } catch (error) {
+                document.getElementById('loader').style.display = 'none';
+                showError("Audit failed. Target might be blocking the scanner or API limit reached.");
+            }
+        }
+
+        function showError(msg) {
+            document.getElementById('errorMsg').innerText = msg;
+            document.getElementById('errorMsg').style.display = 'block';
+            document.getElementById('loader').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
