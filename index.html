@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hexbytes - Advanced Website Auditor</title>
+<style>
+:root{--bg-dark:#0a0e17;--panel-bg:#111827;--neon-green:#00ffcc;--neon-red:#ff3366;--neon-yellow:#fbbf24;--neon-blue:#3b82f6;--neon-purple:#8b5cf6;--neon-orange:#f97316;--text-main:#e2e8f0;--text-muted:#94a3b8;}
+*{box-sizing:border-box;}
+body{background-color:var(--bg-dark);color:var(--text-main);font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;margin:0;padding:20px;display:flex;justify-content:center;}
+.container{background-color:var(--panel-bg);padding:30px;border-radius:12px;box-shadow:0 0 30px rgba(0,255,204,0.1);width:100%;max-width:1050px;border:1px solid #1f2937;margin-bottom:50px;}
+.header{text-align:center;margin-bottom:20px;border-bottom:1px solid #1f2937;padding-bottom:15px;position:relative;}
+.header h1{color:var(--neon-green);margin:0;font-size:32px;font-family:'Courier New',monospace;text-shadow:0 0 10px rgba(0,255,204,0.3);}
+.header p{color:var(--text-muted);font-size:14px;margin-top:5px;}
+.lang-toggle{position:absolute;top:0;right:0;display:flex;gap:5px;}
+.lang-toggle button{background:#0a0e17;color:var(--text-muted);border:1px solid #374151;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:11px;}
+.lang-toggle button.active{color:var(--neon-green);border-color:var(--neon-green);}
+.tabs{display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;}
+.tab-btn{background:transparent;color:var(--text-muted);border:1px solid #374151;padding:10px 8px;border-radius:6px;cursor:pointer;flex:1 1 auto;font-weight:bold;transition:0.3s;font-size:12px;min-width:95px;}
+.tab-btn:hover{border-color:var(--neon-green);color:var(--neon-green);}
+.tab-btn.active{background:rgba(0,255,204,0.1);color:var(--neon-green);border-color:var(--neon-green);box-shadow:0 0 10px rgba(0,255,204,0.2);}
+.tab-btn.ecom-btn.active{background:rgba(249,115,22,0.1);color:var(--neon-orange);border-color:var(--neon-orange);}
+.tab-btn.xray-btn.active{background:rgba(139,92,246,0.1);color:var(--neon-purple);border-color:var(--neon-purple);}
+.tab-btn.bug-btn.active{background:rgba(239,68,68,0.1);color:#ef4444;border-color:#ef4444;}
+.tab-btn.seo-btn.active{background:rgba(16,185,129,0.1);color:#10b981;border-color:#10b981;}
+.tab-btn.a11y-btn.active{background:rgba(59,130,246,0.1);color:#3b82f6;border-color:#3b82f6;}
+.input-group{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
+input[type="text"]{flex:1;min-width:200px;padding:15px;background:#0a0e17;border:1px solid #374151;color:var(--neon-green);border-radius:6px;font-size:16px;outline:none;font-family:'Courier New',monospace;}
+input[type="text"]:focus{border-color:var(--neon-green);box-shadow:0 0 10px rgba(0,255,204,0.2);}
+button.action{padding:15px 20px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;font-size:14px;transition:0.3s;}
+.scan-btn{background:var(--neon-green);color:var(--bg-dark);}
+.scan-btn:hover{background:#00ccaa;box-shadow:0 0 15px rgba(0,255,204,0.4);}
+.pdf-btn{background:var(--neon-blue);color:white;}
+.pdf-btn:hover{background:#2563eb;}
+.history-btn{background:var(--neon-purple);color:white;}
+.history-btn:hover{background:#7c3aed;}
+#headersSection,#toolsSection,#xraySection,#ecomSection,#bugsSection,#seoSection,#a11ySection,#sslSection,#scriptsSection,#historySection,#compareSection{display:none;}
+.audit-category{margin-bottom:25px;}
+.cat-title{color:var(--neon-blue);border-bottom:1px solid #1f2937;padding-bottom:5px;margin-bottom:15px;font-size:16px;}
+.audit-item{background:#ffffff;color:#333;border-radius:8px;margin-bottom:12px;overflow:hidden;}
+.audit-header{display:flex;align-items:center;padding:12px 16px;font-weight:bold;cursor:pointer;border-bottom:1px solid #eee;justify-content:space-between;font-size:14px;}
+.audit-title-group{display:flex;align-items:center;flex:1;}
+.badge{padding:3px 9px;border-radius:12px;font-size:10px;font-weight:800;margin-right:12px;text-transform:uppercase;white-space:nowrap;}
+.badge-fail{background:#ffe4e6;color:#e11d48;}
+.badge-warn{background:#fef3c7;color:#d97706;}
+.badge-pass{background:#d1fae5;color:#059669;}
+.audit-body{padding:0 16px 16px 16px;font-size:13px;display:none;border-top:1px solid #eee;}
+.box{margin-top:8px;padding:10px;border-radius:6px;font-size:12px;}
+.box-evidence{background:#f5f3ff;border-left:3px solid #8b5cf6;font-family:monospace;word-break:break-all;}
+.box-law{background:#eff6ff;border-left:3px solid #3b82f6;}
+.box-fix{background:#ecfdf5;border-left:3px solid #10b981;}
+.xray-card,.ecom-card,.tool-card{background:#0a0e17;padding:20px;border-radius:8px;margin-bottom:20px;border:1px solid #374151;}
+.xray-card{border-color:var(--neon-purple);}
+.xray-card h3{color:var(--neon-purple);margin-top:0;font-size:16px;}
+.ecom-card{border-color:var(--neon-orange);}
+.ecom-card h3{color:var(--neon-orange);margin-top:0;font-size:16px;}
+.tool-card h3{color:var(--neon-green);margin-top:0;font-size:16px;}
+.tech-tag{display:inline-block;background:rgba(139,92,246,0.2);color:#a78bfa;padding:5px 10px;border-radius:5px;margin:5px;font-family:monospace;font-size:13px;border:1px solid #7c3aed;}
+.list-item{padding:8px;border-bottom:1px solid #1f2937;font-family:monospace;font-size:12px;color:#ccc;word-break:break-all;}
+.ecom-stat{display:flex;justify-content:space-between;border-bottom:1px solid #1f2937;padding:8px 0;font-family:monospace;font-size:13px;gap:10px;}
+.ecom-stat span:last-child{color:var(--neon-green);font-weight:bold;text-align:right;}
+.code-box{background:#000;padding:15px;border-radius:6px;color:#a3e635;font-family:monospace;font-size:12px;overflow-x:auto;white-space:pre-wrap;margin-top:10px;max-height:400px;overflow-y:auto;}
+.copy-btn{background:var(--neon-green);color:#000;border:none;padding:8px 15px;border-radius:4px;cursor:pointer;font-weight:bold;margin-top:10px;font-size:12px;}
+.checklist-item{color:var(--text-main);margin-bottom:8px;display:flex;align-items:center;gap:10px;font-size:13px;}
+.loader{display:none;text-align:center;color:var(--neon-green);font-weight:bold;font-size:16px;margin:30px 0;}
+#errorMsg{display:none;color:var(--neon-red);text-align:center;background:rgba(255,51,102,0.1);padding:15px;border-radius:6px;margin-bottom:20px;font-size:13px;}
+.disclaimer-bar{background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;padding:10px 15px;border-radius:6px;font-size:11px;margin-bottom:15px;text-align:center;line-height:1.5;}
+.summary-box{display:none;text-align:center;margin-bottom:20px;padding:20px;background:#0a0e17;border-radius:8px;border:1px dashed #374151;}
+.summary-box h1,.summary-box h2{margin:0;font-size:42px;font-weight:bold;font-family:'Courier New';}
+.summary-box p{color:var(--text-muted);font-size:13px;margin-top:5px;}
+.severity-line{margin-top:10px;font-size:12px;line-height:1.8;}
+.modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background-color:rgba(0,0,0,0.9);justify-content:center;align-items:center;padding:20px;}
+.certificate-box{background:#0d1117;color:#fff;padding:30px;border-radius:12px;width:100%;max-width:750px;text-align:center;position:relative;border:8px solid #00ffcc;box-shadow:0 0 50px rgba(0,255,204,0.2);font-family:'Courier New',monospace;max-height:90vh;overflow-y:auto;}
+.certificate-box .close-btn{position:absolute;top:10px;right:20px;font-size:28px;cursor:pointer;color:#00ffcc;font-weight:bold;}
+.cert-logo-svg{width:100px;margin-bottom:10px;filter:drop-shadow(0 0 10px rgba(0,255,204,0.5));}
+.cert-header{font-size:24px;font-weight:bold;color:#fff;letter-spacing:4px;text-transform:uppercase;margin-bottom:5px;}
+.cert-sub{font-size:11px;color:#00ffcc;letter-spacing:3px;margin-bottom:15px;}
+.cert-type-badge{display:inline-block;background:rgba(0,255,204,0.15);color:#00ffcc;padding:6px 16px;border-radius:20px;font-size:11px;letter-spacing:2px;margin-bottom:15px;border:1px solid #00ffcc;}
+.cert-title{font-family:serif;font-size:20px;color:#e2e8f0;margin:15px 0;font-style:italic;}
+.cert-target{font-size:22px;font-weight:bold;color:#00ffcc;margin:15px 0;word-break:break-all;text-shadow:0 0 10px rgba(0,255,204,0.5);}
+.cert-stamp-container{display:inline-block;margin:15px 0;}
+.cert-stamp{width:110px;height:110px;border-radius:50%;border:4px dashed #00ffcc;display:flex;justify-content:center;align-items:center;background:rgba(0,255,204,0.1);transform:rotate(-15deg);box-shadow:0 0 20px rgba(0,255,204,0.3);}
+.cert-stamp-inner{width:85px;height:85px;border-radius:50%;border:2px solid #00ffcc;display:flex;flex-direction:column;justify-content:center;align-items:center;}
+.cert-stamp .grade{font-size:34px;font-weight:bold;color:#00ffcc;margin:0;}
+.cert-stamp .score{font-size:10px;color:#fff;}
+.cert-details{font-size:12px;color:#a0aec0;line-height:1.8;margin-top:15px;border-top:1px solid #2d3748;padding-top:12px;}
+.cert-disclaimer{font-size:10px;color:#fbbf24;margin-top:12px;padding:10px;background:rgba(251,191,36,0.08);border-radius:4px;border-left:3px solid #fbbf24;text-align:left;line-height:1.5;}
+.cert-footer{margin-top:20px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px;}
+.signature{font-family:'Brush Script MT',cursive;font-size:22px;color:#00ffcc;margin-bottom:5px;}
+.site-footer{text-align:center;color:var(--text-muted);font-size:10px;margin-top:30px;padding-top:15px;border-top:1px solid #1f2937;line-height:1.6;}
+.history-item{background:#0a0e17;padding:12px;border-radius:6px;margin-bottom:10px;border-left:3px solid var(--neon-purple);cursor:pointer;font-family:monospace;font-size:12px;}
+.history-item:hover{background:#1f2937;}
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:15px;}
+.compare-cell{background:#0a0e17;padding:15px;border-radius:8px;border:1px solid #374151;}
+.compare-cell h4{color:var(--neon-green);margin:0 0 10px 0;font-size:13px;word-break:break-all;}
+.compare-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1f2937;font-size:12px;font-family:monospace;gap:10px;}
+.winner{color:var(--neon-green);font-weight:bold;}
+.loser{color:var(--neon-red);}
+@media(max-width:768px){
+.container{padding:15px;}
+.tabs{flex-direction:column;}
+.tab-btn{width:100%;}
+.input-group{flex-direction:column;}
+input[type="text"],button.action{width:100%;}
+.audit-header{font-size:12px;padding:10px;}
+.certificate-box{padding:15px;}
+.cert-header{font-size:16px;}
+.cert-title{font-size:16px;}
+.cert-stamp{width:85px;height:85px;}
+.cert-stamp-inner{width:65px;height:65px;}
+.cert-stamp .grade{font-size:24px;}
+.compare-grid{grid-template-columns:1fr;}
+}
+@media print{
+body *{visibility:hidden;}
+#certificateModal,#certificateModal *{visibility:visible;}
+#certificateModal{position:absolute;left:0;top:0;background:white;padding:0;}
+.certificate-box{border-color:#0a0e17;box-shadow:none;background:#fff;color:#000;max-height:none;}
+.cert-header,.cert-title,.cert-details,.cert-disclaimer{color:#000;}
+.cert-target{color:#000;text-shadow:none;}
+.cert-sub{color:#555;}
+.cert-type-badge{color:#000;border-color:#000;background:#eee;}
+.cert-stamp,.cert-stamp-inner{border-color:#000;box-shadow:none;background:transparent;}
+.cert-stamp .grade,.cert-stamp .score{color:#000;}
+.cert-logo-svg{filter:grayscale(100%);}
+.close-btn,#printBtn{display:none!important;}
+}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<div class="lang-toggle">
+<button id="langEn" class="active" onclick="setLang('en')">EN</button>
+<button id="langHi" onclick="setLang('hi')">हिं</button>
+</div>
+<h1>> Hexbytes.in</h1>
+<p id="subtitle">Advanced Website Auditor — DPDP, SEO, Security & Bugs</p>
+</div>
+<div class="disclaimer-bar" id="disclaimer">
+⚠️ Automated heuristic analysis only. <strong>Not a legal compliance certificate.</strong> Consult a qualified professional for official audits.
+</div>
+<div class="tabs">
+<button class="tab-btn active" onclick="switchTab(event,'audit')" data-tab="audit">DPDP Audit</button>
+<button class="tab-btn bug-btn" onclick="switchTab(event,'bugs')" data-tab="bugs">🐞 Bug Finder</button>
+<button class="tab-btn seo-btn" onclick="switchTab(event,'seo')" data-tab="seo">📈 SEO</button>
+<button class="tab-btn a11y-btn" onclick="switchTab(event,'a11y')" data-tab="a11y">♿ A11y</button>
+<button class="tab-btn ecom-btn" onclick="switchTab(event,'ecom')" data-tab="ecom">🛒 E-Com</button>
+<button class="tab-btn xray-btn" onclick="switchTab(event,'xray')" data-tab="xray">🕵️ X-Ray</button>
+<button class="tab-btn" onclick="switchTab(event,'headers')" data-tab="headers">🛡️ Headers</button>
+<button class="tab-btn" onclick="switchTab(event,'ssl')" data-tab="ssl">🔒 SSL</button>
+<button class="tab-btn" onclick="switchTab(event,'scripts')" data-tab="scripts">📜 Scripts</button>
+<button class="tab-btn" onclick="switchTab(event,'history')" data-tab="history">📚 History</button>
+<button class="tab-btn" onclick="switchTab(event,'compare')" data-tab="compare">⚖️ Compare</button>
+<button class="tab-btn" onclick="switchTab(event,'tools')" data-tab="tools">🛠️ Tools</button>
+</div>
+<div class="input-group" id="standardInputGroup">
+<input type="text" id="urlInput" placeholder="https://example.com" onkeypress="if(event.key==='Enter')startScan()">
+<button class="action scan-btn" onclick="startScan()">RUN SCAN</button>
+<button class="action pdf-btn" onclick="showCertificate()">🎓 Certificate</button>
+<button class="action history-btn" onclick="showPDFReport()">📄 PDF Report</button>
+</div>
+<div id="loader" class="loader">[+] Analyzing target... Please wait.</div>
+<div id="errorMsg"></div>
+<div id="auditSection"><div id="auditResults"></div></div>
+<div id="bugsSection">
+<div class="disclaimer-bar" style="background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3);color:#fca5a5;">
+⚠️ <strong>Note:</strong> Sirf homepage HTML analyze hota hai. JS runtime errors aur multi-page crawling nahi.
+</div>
+<div class="summary-box" id="bugsSummary">
+<h1 id="bugsCount" style="color:#ef4444;">0</h1>
+<p>Issues Found</p>
+<div class="severity-line" id="bugsSeverity"></div>
+</div>
+<div id="bugsResults"></div>
+</div>
+<div id="seoSection">
+<div class="summary-box" id="seoSummary">
+<h1 id="seoScore" style="color:#10b981;">0</h1>
+<p>SEO Score /100</p>
+</div>
+<div id="seoResults"></div>
+</div>
+<div id="a11ySection">
+<div class="summary-box" id="a11ySummary">
+<h1 id="a11yScore" style="color:#3b82f6;">0</h1>
+<p>Accessibility Score /100</p>
+</div>
+<div id="a11yResults"></div>
+</div>
+<div id="ecomSection"><div id="ecomResults"></div></div>
+<div id="xraySection"><div id="xrayResults"></div></div>
+<div id="headersSection">
+<div class="summary-box" id="headersScoreBoard">
+<h1 id="headersGradeDisplay" style="color:var(--neon-green);">?</h1>
+<p>Score: <span id="headersScoreDisplay">0</span>/100</p>
+</div>
+<div id="headersResultsList"></div>
+</div>
+<div id="sslSection">
+<div class="summary-box" id="sslSummary">
+<h1 id="sslGrade" style="color:var(--neon-green);">?</h1>
+<p>SSL Score /100</p>
+</div>
+<div id="sslResults"></div>
+</div>
+<div id="scriptsSection">
+<div id="scriptsResults"></div>
+</div>
+<div id="historySection">
+<h3 style="color:var(--neon-purple);margin-top:0;">📚 Recent Scans</h3>
+<div id="historyList"></div>
+<button class="action" onclick="clearHistory()" style="background:#ef4444;color:#fff;margin-top:15px;">🗑️ Clear History</button>
+</div>
+<div id="compareSection">
+<h3 style="color:var(--neon-green);margin-top:0;">⚖️ Compare Two Websites</h3>
+<div class="input-group">
+<input type="text" id="compareUrl1" placeholder="URL 1 (e.g. yoursite.com)">
+<input type="text" id="compareUrl2" placeholder="URL 2 (e.g. competitor.com)">
+<button class="action scan-btn" onclick="runComparison()">Compare</button>
+</div>
+<div id="compareResults"></div>
+</div>
+<div id="toolsSection">
+<div class="tool-card">
+<h3>1. DPDP Consent Banner Code</h3>
+<div class="code-box" id="consentCode"></div>
+<button class="copy-btn" onclick="copyText('consentCode')">Copy Code</button>
+</div>
+<div class="tool-card">
+<h3>2. Developer Implementation Checklist</h3>
+<div style="margin-top:15px;">
+<div class="checklist-item">🔲 Add a Privacy Policy link in the footer?</div>
+<div class="checklist-item">🔲 Does your consent banner have a "Reject" button?</div>
+<div class="checklist-item">🔲 Block Google Analytics until consent?</div>
+<div class="checklist-item">🔲 Publish Grievance Officer contact email?</div>
+<div class="checklist-item">🔲 Add data deletion request form?</div>
+<div class="checklist-item">🔲 Document data breach notification process?</div>
+</div>
+</div>
+<div class="tool-card">
+<h3>3. Security Headers (Nginx Config)</h3>
+<div class="code-box" id="nginxCode"></div>
+<button class="copy-btn" onclick="copyText('nginxCode')">Copy Code</button>
+</div>
+</div>
+<div class="site-footer">
+© 2025 Hexbytes.in — Automated Auditor<br>
+Results are heuristic estimates. Not affiliated with MeitY or Data Protection Board of India.
+</div>
+</div>
+<div id="certificateModal" class="modal">
+<div class="certificate-box">
+<span class="close-btn" onclick="closeModal()">&times;</span>
+<svg class="cert-logo-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+<polygon points="50,5 95,25 95,75 50,95 5,75 5,25" fill="none" stroke="#00ffcc" stroke-width="4"/>
+<polygon points="50,20 80,35 80,65 50,80 20,65 20,35" fill="none" stroke="#00ffcc" stroke-width="2"/>
+<path d="M 40 50 L 50 40 L 60 50 L 50 60 Z" fill="#00ffcc"/>
+</svg>
+<div class="cert-header">Certificate</div>
+<div class="cert-sub">OF WEBSITE READINESS</div>
+<div class="cert-type-badge" id="certType">DPDP AUDIT</div>
+<div class="cert-title">This is to certify that the website</div>
+<div class="cert-target" id="certUrl">website.com</div>
+<div class="cert-stamp-container">
+<div class="cert-stamp">
+<div class="cert-stamp-inner">
+<p class="grade" id="certGrade">A+</p>
+<p class="score" id="certScore">90/100</p>
+</div>
+</div>
+</div>
+<p style="color:#a0aec0;font-size:12px;margin-top:12px;font-family:'Segoe UI',sans-serif;">Has been analyzed by the Hexbytes Core Engine against the selected audit criteria.</p>
+<div class="cert-details">
+<strong>Audit Type:</strong> <span id="certTypeText">DPDP Audit</span><br>
+<strong>Audit Date:</strong> <span id="certDate"></span><br>
+<strong>Verification ID:</strong> <span id="certId">HX-000000</span>
+</div>
+<div class="cert-disclaimer">
+<strong>⚠️ Disclaimer:</strong> This certificate is generated from automated heuristic analysis and is for educational purposes only. It is <strong>NOT</strong> a legal compliance certificate. Consult a qualified professional for actual verification.
+</div>
+<div class="cert-footer">
+<div>
+<div class="signature">Kuldeep</div>
+<div style="font-size:10px;color:#a0aec0;font-family:'Segoe UI',sans-serif;">Cyber Security Executive</div>
+</div>
+<div style="text-align:right;">
+<div style="font-size:16px;font-weight:bold;color:#fff;font-family:'Courier New';">> HEXBYTES.IN</div>
+<div style="font-size:9px;color:#00ffcc;">Automated Audit Engine</div>
+</div>
+</div>
+<button id="printBtn" onclick="window.print()" style="margin-top:15px;background:#00ffcc;color:#000;border:none;padding:12px;border-radius:5px;cursor:pointer;font-weight:bold;font-size:14px;width:100%;">🖨️ Print / Save as PDF</button>
+</div>
+</div>
+<script>
+let currentTab='audit';let currentUrl='';const tabScores={audit:null,ecom:null,headers:null,xray:null,bugs:null,seo:null,a11y:null,ssl:null};const CACHE_KEY='hexbytes_headers_cache';const CACHE_TTL=24*60*60*1000;const HISTORY_KEY='hexbytes_history';
+const I18N={en:{subtitle:"Advanced Website Auditor — DPDP, SEO, Security & Bugs",disclaimer:"⚠️ Automated heuristic analysis only. <strong>Not a legal compliance certificate.</strong> Consult a qualified professional for official audits."},hi:{subtitle:"उन्नत वेबसाइट ऑडिटर — DPDP, SEO, सुरक्षा और बग्स",disclaimer:"⚠️ केवल स्वचालित विश्लेषण। <strong>यह कानूनी प्रमाणपत्र नहीं है।</strong> आधिकारिक ऑडिट के लिए योग्य पेशेवर से सलाह लें।"}};
+function setLang(l){document.getElementById('subtitle').innerText=I18N[l].subtitle;document.getElementById('disclaimer').innerHTML=I18N[l].disclaimer;document.getElementById('langEn').classList.toggle('active',l==='en');document.getElementById('langHi').classList.toggle('active',l==='hi');}
+document.getElementById('consentCode').innerText='<!-- DPDP Cookie Consent -->\n<div id="cookie-banner" style="position:fixed;bottom:0;width:100%;background:#111;color:#fff;padding:15px;text-align:center;z-index:9999;">\n  <p>We use cookies. Read our <a href="/privacy" style="color:#00ffcc;">Privacy Policy</a>.</p>\n  <button onclick="acceptCookies()">Accept</button>\n  <button onclick="rejectCookies()">Reject</button>\n</div>';
+document.getElementById('nginxCode').innerText='# Nginx Security Headers\nadd_header Content-Security-Policy "default-src \'self\';" always;\nadd_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;\nadd_header X-Frame-Options "SAMEORIGIN" always;\nadd_header X-Content-Type-Options "nosniff" always;\nadd_header Referrer-Policy "strict-origin-when-cross-origin" always;\nadd_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;';
+function switchTab(evt,tab){currentTab=tab;document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));if(evt&&evt.target)evt.target.classList.add('active');['audit','bugs','seo','a11y','ecom','xray','headers','ssl','scripts','history','compare','tools'].forEach(t=>{const el=document.getElementById(t+'Section');if(el)el.style.display=t===tab?'block':'none';});if(tab==='tools'||tab==='history'||tab==='compare'){document.getElementById('standardInputGroup').style.display='none';}else{document.getElementById('standardInputGroup').style.display='flex';if(currentUrl)startScan();}if(tab==='history')renderHistory();}
+function toggleAccordion(el){const b=el.nextElementSibling;b.style.display=b.style.display==='block'?'none':'block';}
+function copyText(id){navigator.clipboard.writeText(document.getElementById(id).innerText).then(()=>alert("Copied!"));}
+async function fetchWithTimeout(url,timeout=12000){const c=new AbortController();const t=setTimeout(()=>c.abort(),timeout);try{const r=await fetch(url,{signal:c.signal});clearTimeout(t);return r;}catch(e){clearTimeout(t);throw e;}}
+async function fetchTargetHtml(targetUrl){const proxies=[async()=>{const r=await fetchWithTimeout('https://api.allorigins.win/get?url='+encodeURIComponent(targetUrl));const d=await r.json();if(!d.contents)throw new Error("empty");return d.contents;},async()=>{const r=await fetchWithTimeout('https://corsproxy.io/?'+encodeURIComponent(targetUrl));const t=await r.text();if(!t||t.length<100)throw new Error("empty");return t;},async()=>{const r=await fetchWithTimeout('https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(targetUrl));const t=await r.text();if(!t||t.length<100)throw new Error("empty");return t;}];let lastErr;for(const p of proxies){try{const c=await p();if(c&&c.length>=100)return c.toLowerCase();}catch(e){lastErr=e;}}throw lastErr||new Error("All proxies failed");}
+function getCache(){try{return JSON.parse(localStorage.getItem(CACHE_KEY)||'{}');}catch{return{};}}
+function setCache(c){try{localStorage.setItem(CACHE_KEY,JSON.stringify(c));}catch{}}
+async function startScan(){let urlInput=document.getElementById('urlInput').value.trim();if(!urlInput)return showError("Please enter a valid URL.");if(!/^https?:\/\//i.test(urlInput))urlInput='https://'+urlInput;currentUrl=urlInput;document.getElementById('loader').style.display='block';document.getElementById('errorMsg').style.display='none';if(currentTab==='headers'){runHeadersScan(currentUrl);return;}try{const textContent=await fetchTargetHtml(currentUrl);document.getElementById('loader').style.display='none';if(currentTab==='audit')await renderDPDPScan(textContent);else if(currentTab==='bugs')renderBugFinder(textContent);else if(currentTab==='seo')renderSEO(textContent);else if(currentTab==='a11y')renderA11y(textContent);else if(currentTab==='ecom')renderEcomScan(textContent);else if(currentTab==='xray')renderXRayScan(textContent);else if(currentTab==='ssl')renderSSL(textContent);else if(currentTab==='scripts')renderScripts(textContent);saveHistory(currentTab,tabScores[currentTab]);}catch(error){document.getElementById('loader').style.display='none';showError("Scan failed. Target WAF is blocking proxies, or all proxies are down.");}}
+async function runHeadersScan(targetUrl){try{const cache=getCache();const domain=new URL(targetUrl).hostname;if(cache[domain]&&(Date.now()-cache[domain].ts<CACHE_TTL)){renderHeadersResult(cache[domain].data);return;}const apiUrl='https://api.hackertarget.com/httpheaders/?q='+encodeURIComponent(targetUrl);const response=await fetch(apiUrl);const textData=await response.text();document.getElementById('loader').style.display='none';if(textData.includes('error')||textData.includes('API count exceeded'))throw new Error("API limit reached. Try again after 1 minute.");cache[domain]={ts:Date.now(),data:textData};setCache(cache);renderHeadersResult(textData);saveHistory('headers',tabScores.headers);}catch(error){document.getElementById('loader').style.display='none';showError(error.message||"Headers scan failed.");}}
+function renderHeadersResult(textData){const headersConfig=[{name:'content-security-policy',weight:25},{name:'strict-transport-security',weight:25},{name:'x-frame-options',weight:15},{name:'x-content-type-options',weight:15},{name:'referrer-policy',weight:10},{name:'permissions-policy',weight:10}];let html='';let score=0;headersConfig.forEach(config=>{const regex=new RegExp('^'+config.name+':\\s*(.+)$','im');const match=textData.match(regex);if(match){score+=config.weight;html+='<div style="margin-bottom:8px;padding:10px;background:#0a0e17;border-left:4px solid var(--neon-green);font-size:13px;"><div style="font-weight:bold;display:flex;justify-content:space-between;flex-wrap:wrap;gap:5px;"><span>✅ '+config.name+'</span><span style="color:var(--neon-green)">+'+config.weight+' pts</span></div></div>';}else{html+='<div style="margin-bottom:8px;padding:10px;background:#0a0e17;border-left:4px solid var(--neon-red);font-size:13px;"><div style="font-weight:bold;display:flex;justify-content:space-between;flex-wrap:wrap;gap:5px;"><span>❌ '+config.name+'</span><span style="color:var(--neon-red)">0 pts</span></div></div>';}});tabScores.headers=score;document.getElementById('headersScoreDisplay').innerText=score;document.getElementById('headersGradeDisplay').innerText=score>=90?'A+':(score>=65?'B':'F');document.getElementById('headersScoreBoard').style.display='block';document.getElementById('headersResultsList').innerHTML=html;}
+function findEvidence(text,keywords){for(let kw of keywords){const idx=text.indexOf(kw);if(idx!==-1)return '...'+text.substring(Math.max(0,idx-30),Math.min(text.length,idx+kw.length+30)).replace(/\n/g,' ')+'...';}return null;}
+function renderEcomScan(t){let p='Custom / Unknown';if(t.includes('cdn.shopify.com')||t.includes('shopify'))p='Shopify';else if(t.includes('wp-content')||t.includes('wordpress'))p='WordPress (WooCommerce)';const r=t.includes('refund policy')||t.includes('return policy');const s=t.includes('shipping policy');const tm=t.includes('terms of service')||t.includes('terms and conditions');const py=t.includes('razorpay')||t.includes('stripe')||t.includes('paypal');let sc=0;if(r)sc+=25;if(s)sc+=25;if(tm)sc+=25;if(py)sc+=25;tabScores.ecom=sc;let h='<div class="ecom-card"><h3>🛒 Platform: '+p+'</h3><div class="ecom-stat"><span>Refund Policy</span><span>'+(r?'✅ Found':'❌ Missing')+'</span></div><div class="ecom-stat"><span>Shipping Policy</span><span>'+(s?'✅ Found':'❌ Missing')+'</span></div><div class="ecom-stat"><span>Terms of Service</span><span>'+(tm?'✅ Found':'❌ Missing')+'</span></div><div class="ecom-stat"><span>Payment Gateway</span><span>'+(py?'✅ Found':'⚠️ Check')+'</span></div><div class="ecom-stat" style="border-top:2px solid #374151;margin-top:10px;padding-top:15px;"><span>Score</span><span>'+sc+'/100</span></div></div>';h+='<div class="ecom-card"><h3>🛡️ Security Notes</h3><p style="color:#ccc;font-size:13px;">'+(p==='WordPress (WooCommerce)'?'⚠️ WordPress: Disable <code>wp-json/wp/v2/users</code> API.':(p==='Shopify'?'✅ Shopify: Ensure 3rd-party apps do not inject tracking on checkout.':'Verify payment gateway implementation.'))+'</p></div>';document.getElementById('ecomResults').innerHTML=h;}
+function renderXRayScan(t){let tech=[];if(t.includes('wp-content'))tech.push('WordPress');if(t.includes('_next/static'))tech.push('Next.js');if(t.includes('cdn.shopify.com'))tech.push('Shopify');if(t.includes('react'))tech.push('React');if(t.includes('cloudflare'))tech.push('Cloudflare');const rx=/<script.*?src=["'](.*?)["']/g;let scripts=[];let m;while((m=rx.exec(t))!==null&&scripts.length<8)scripts.push(m[1]);let h='<div class="xray-card"><h3>⚙️ Tech Stack</h3><div>'+(tech.length?tech.map(x=>'<span class="tech-tag">'+x+'</span>').join(''):'<span style="color:#888;">Unknown</span>')+'</div></div><div class="xray-card"><h3>📜 External Scripts</h3><div>'+(scripts.length?scripts.map(s=>'<div class="list-item">🔗 '+s+'</div>').join(''):'<div class="list-item">None found.</div>')+'</div></div>';document.getElementById('xrayResults').innerHTML=h;}
+async function renderDPDPScan(t){const trackers=findEvidence(t,['google-analytics','googletagmanager','fbq','hotjar']);const privacy=findEvidence(t,['privacy policy','privacy-policy']);const dpo=findEvidence(t,['grievance','dpo','data protection officer']);const withdraw=findEvidence(t,['withdraw consent','manage preferences','opt-out']);const children=findEvidence(t,['children','minor','under 18']);const breach=findEvidence(t,['data breach','security incident']);const forms=findEvidence(t,['<form','input type="email"']);const cookies=findEvidence(t,['cookie','cookies']);const deletion=findEvidence(t,['delete my data','right to erasure','data deletion']);const correction=findEvidence(t,['correct my data','update data','rectification']);let sc=0;if(!trackers)sc+=10;if(privacy)sc+=10;if(dpo)sc+=10;if(withdraw)sc+=10;if(children)sc+=10;if(breach)sc+=10;if(forms)sc+=10;if(cookies)sc+=10;if(deletion)sc+=10;if(correction)sc+=10;tabScores.audit=sc;let h='<div class="audit-category"><div class="cat-title">🍪 Cookies & Trackers</div>';h+='<div class="audit-item"><div class="audit-header" onclick="toggleAccordion(this)"><div class="audit-title-group"><span class="badge '+(trackers?'badge-fail':'badge-pass')+'">'+(trackers?'FAIL':'PASS')+'</span><span>7 & 8. Cookie Inventory</span></div><span>▼</span></div><div class="audit-body"><div class="box box-evidence"><strong>Evidence:</strong> '+(trackers||'None')+'</div><div class="box box-law"><strong>Law:</strong> Sec 6 - Prior consent required.</div><div class="box box-fix"><strong>Fix:</strong> Block scripts until consent.</div></div></div>';h+='<div class="audit-item"><div class="audit-header" onclick="toggleAccordion(this)"><div class="audit-title-group"><span class="badge '+(cookies?'badge-warn':'badge-pass')+'">'+(cookies?'WARN':'PASS')+'</span><span>9. Consent Options</span></div><span>▼</span></div><div class="audit-body"><div class="box box-evidence"><strong>Evidence:</strong> '+(cookies||'No cookie text')+'</div><div class="box box-law"><strong>Law:</strong> Sec 6(1) - Free and unambiguous consent.</div><div class="box box-fix"><strong>Fix:</strong> Provide Accept/Reject buttons.</div></div></div>';h+='<div class="audit-category"><div class="cat-title">🛡️ Privacy & Data Rights</div>';h+='<div class="audit-item"><div class="audit-header" onclick="toggleAccordion(this)"><div class="audit-title-group"><span class="badge '+(privacy?'badge-pass':'badge-fail')+'">'+(privacy?'PASS':'FAIL')+'</span><span>11. Privacy Policy</span></div><span>▼</span></div><div class="audit-body"><div class="box box-evidence"><strong>Evidence:</strong> '+(privacy||'Not found')+'</div><div class="box box-law"><strong>Law:</strong> Sec 5(1) - Notice before consent.</div><div class="box box-fix"><strong>Fix:</strong> Create a Privacy Policy page.</div></div></div>';h+='<div class="audit-item"><div class="audit-header" onclick="toggleAccordion(this)"><div class="audit-title-group"><span class="badge '+(deletion?'badge-pass':'badge-fail')+'">'+(deletion?'PASS':'FAIL')+'</span><span>13. Data Deletion</span></div><span>▼</span></div><div class="audit-body"><div class="box box-evidence"><strong>Evidence:</strong> '+(deletion||'Not found')+'</div><div class="box box-law"><strong>Law:</strong> Sec 12 - Right to erase.</div><div class="box box-fix"><strong>Fix:</strong> Add deletion request form.</div></div></div>';h+='<div class="audit-item"><div class="audit-header" onclick="toggleAccordion(this)"><div class="audit-title-group"><span class="badge '+(dpo?'badge-pass':'badge-fail')+'">'+(dpo?'PASS':'FAIL')+'</span><span>Grievance Officer</span></div><span>▼</span></div><div class="audit-body"><div class="box box-evidence"><strong>Evidence:</strong> '+(dpo||'Not found')+'</div><div class="box box-law"><strong>Law:</strong> Sec 13 - Contact for grievances.</div><div class="box box-fix"><strong>Fix:</strong> Publish officer contact details.</div></div></div>';document.getElementById('auditResults').innerHTML=h;}
+function renderBugFinder(t){const bugs=[];const push=(s,c,ti,d,f)=>bugs.push({severity:s,category:c,title:ti,detail:d,fix:f});const tl=t.toLowerCase();const doc=new DOMParser().parseFromString(t,'text/html');
+if(!tl.trim().startsWith('<!doctype'))push('high','HTML','Missing DOCTYPE','Page <!DOCTYPE html> se shuru nahi hoti.','Top pe add karein.');
+if(!doc.querySelector('meta[charset]'))push('high','HTML','Missing charset','<meta charset="UTF-8"> nahi mila.','Head mein add karein.');
+if(!doc.querySelector('meta[name="viewport"]'))push('high','HTML','Missing viewport','Mobile responsive nahi hoga.','Add viewport meta.');
+const h1s=doc.querySelectorAll('h1');if(h1s.length===0)push('medium','SEO','No <h1> tag','Page mein h1 nahi.','Ek descriptive h1 add karein.');else if(h1s.length>1)push('medium','SEO','Multiple h1 ('+h1s.length+')','Ek page pe ek h1.','Sirf ek rakhein.');
+const ids={};doc.querySelectorAll('[id]').forEach(el=>ids[el.id]=(ids[el.id]||0)+1);Object.entries(ids).forEach(([id,c])=>{if(c>1)push('medium','HTML','Duplicate id="'+id+'"','Ye id '+c+' baar.','IDs unique karein.');});
+['center','font','marquee','blink'].forEach(tag=>{if(doc.querySelector(tag))push('low','HTML','Deprecated <'+tag+'>','Purana tag.','CSS use karein.');});
+const imgs=doc.querySelectorAll('img');let noAlt=0,noSrc=0,noDim=0;imgs.forEach(i=>{if(!i.getAttribute('alt')&&i.getAttribute('alt')!=='')noAlt++;if(!i.getAttribute('src')&&!i.getAttribute('srcset'))noSrc++;if(!i.getAttribute('width')||!i.getAttribute('height'))noDim++;});
+if(noAlt>0)push('high','Accessibility',noAlt+' images without alt','Screen readers issue.','alt add karein.');
+if(noSrc>0)push('high','HTML',noSrc+' images without src','Broken images.','src add karein.');
+if(noDim>3)push('low','Performance',noDim+' images without dimensions','Layout shift.','width/height add karein.');
+const links=doc.querySelectorAll('a');let emptyHref=0,noOpener=0,mixed=0;links.forEach(a=>{const href=a.getAttribute('href');if(!href||href==='#'||href==='')emptyHref++;if(a.getAttribute('target')==='_blank'){const rel=(a.getAttribute('rel')||'').toLowerCase();if(!rel.includes('noopener')&&!rel.includes('noreferrer'))noOpener++;}if(href&&href.startsWith('http://')&&currentUrl.startsWith('https://'))mixed++;});
+if(emptyHref>0)push('medium','Links',emptyHref+' dead links','href="#" ya empty.','Actual URL dein.');
+if(noOpener>0)push('medium','Security',noOpener+' target="_blank" without noopener','Tabnabbing vuln.','rel="noopener noreferrer" add karein.');
+if(mixed>0)push('high','Security',mixed+' mixed content links','HTTPS pe http:// links.','https:// karein.');
+const title=doc.querySelector('title');if(!title||!title.textContent.trim())push('high','SEO','Missing title','Search mein blank.','50-60 chars title.');
+else if(title.textContent.length>60)push('low','SEO','Title too long ('+title.textContent.length+')','Google truncate.','60 chars ke andar.');
+const desc=doc.querySelector('meta[name="description"]');if(!desc||!desc.getAttribute('content'))push('high','SEO','Missing meta description','Snippet nahi.','150-160 chars.');
+if(!doc.querySelector('link[rel="canonical"]'))push('medium','SEO','Missing canonical','Duplicate content issue.','Add canonical.');
+if(!doc.querySelector('link[rel*="icon"]'))push('low','SEO','Missing favicon','Default icon.','Add favicon.');
+const robots=doc.querySelector('meta[name="robots"]');if(robots&&(robots.getAttribute('content')||'').includes('noindex'))push('high','SEO','Page is noindex','Google index nahi karega!','Agar intentional nahi to hatao.');
+['og:title','og:description','og:image'].forEach(t=>{if(!doc.querySelector('meta[property="'+t+'"]'))push('medium','SEO','Missing '+t,'Social preview nahi.','Add karein.');});
+if(!doc.querySelector('script[type="application/ld+json"]'))push('low','SEO','No structured data','Rich snippets nahi.','Add JSON-LD.');
+doc.querySelectorAll('form').forEach((f,i)=>{if(!f.getAttribute('action'))push('medium','Forms','Form #'+(i+1)+' missing action','Submit kahan jayega?','action add karein.');if(!f.getAttribute('method'))push('low','Forms','Form #'+(i+1)+' missing method','Default GET.','method="POST" add karein.');});
+const inputs=doc.querySelectorAll('input:not([type="hidden"]):not([type="submit"])');let noLabel=0;inputs.forEach(inp=>{const id=inp.getAttribute('id');const hasLabel=(id&&doc.querySelector('label[for="'+id+'"]'))||inp.closest('label')||inp.getAttribute('aria-label')||inp.getAttribute('aria-labelledby')||inp.getAttribute('placeholder');if(!hasLabel)noLabel++;});
+if(noLabel>0)push('high','Accessibility',noLabel+' inputs without labels','Screen readers confuse.','label ya aria-label add.');
+const scripts=doc.querySelectorAll('script[src]');let blocking=0;scripts.forEach(s=>{if(!s.hasAttribute('defer')&&!s.hasAttribute('async'))blocking++;});
+if(blocking>3)push('medium','Performance',blocking+' blocking scripts','Slow load.','defer/async lagayein.');
+const inline=Array.from(doc.querySelectorAll('script:not([src])')).map(s=>s.textContent).join('\n');const cl=(inline.match(/console\.log/g)||[]).length;if(cl>0)push('low','Code Quality',cl+' console.log in production','Debug leak.','Remove karein.');
+const keys=[{re:/sk_live_[a-zA-Z0-9]{20,}/g,n:'Stripe Live Key'},{re:/AIza[0-9A-Za-z\-_]{35}/g,n:'Google API Key'},{re:/AKIA[0-9A-Z]{16}/g,n:'AWS Key'}];keys.forEach(({re,n})=>{if(re.test(t))push('critical','Security','Exposed '+n+' in HTML','Key public hai!','IMMEDIATELY revoke karein.');});
+const htmlTag=doc.querySelector('html');if(!htmlTag||!htmlTag.getAttribute('lang'))push('medium','Accessibility','Missing html lang','Screen readers language nahi jante.','<html lang="en"> add.');
+let badTab=0;doc.querySelectorAll('[tabindex]').forEach(el=>{if(parseInt(el.getAttribute('tabindex'))>0)badTab++;});if(badTab>0)push('medium','Accessibility',badTab+' tabindex > 0','Keyboard nav break.','tabindex="0" ya "-1".');
+let emptyBtn=0;doc.querySelectorAll('button').forEach(b=>{if(!(b.textContent||'').trim()&&!b.getAttribute('aria-label')&&!b.getAttribute('aria-labelledby'))emptyBtn++;});if(emptyBtn>0)push('medium','Accessibility',emptyBtn+' buttons without text','Icon-only buttons.','aria-label add karein.');
+const sevOrder={critical:0,high:1,medium:2,low:3};bugs.sort((a,b)=>sevOrder[a.severity]-sevOrder[b.severity]);
+const counts={critical:0,high:0,medium:0,low:0};bugs.forEach(b=>counts[b.severity]++);
+document.getElementById('bugsCount').innerText=bugs.length;
+document.getElementById('bugsSeverity').innerHTML='<span style="color:#ef4444;">🔴 Critical: '+counts.critical+'</span> | <span style="color:#f97316;">🟠 High: '+counts.high+'</span> | <span style="color:#fbbf24;">🟡 Medium: '+counts.medium+'</span> | <span style="color:#3b82f6;">🔵 Low: '+counts.low+'</span>';
+document.getElementById('bugsSummary').style.display='block';
+tabScores.bugs=Math.max(0,100-(counts.critical*20+counts.high*10+counts.medium*4+counts.low*1));
+if(bugs.length===0){document.getElementById('bugsResults').innerHTML='<div style="padding:30px;text-align:center;background:#0a0e17;border-radius:8px;border:1px solid var(--neon-green);"><div style="font-size:48px;">🎉</div><h3 style="color:var(--neon-green);">Koi bug nahi mila!</h3><p style="color:var(--text-muted);font-size:13px;">Homepage HTML clean lagti hai.</p></div>';return;}
+const byCat={};bugs.forEach(b=>{if(!byCat[b.category])byCat[b.category]=[];byCat[b.category].push(b);});
+const sevCol={critical:'#ef4444',high:'#f97316',medium:'#fbbf24',low:'#3b82f6'};
+const sevBg={critical:'rgba(239,68,68,0.15)',high:'rgba(249,115,22,0.15)',medium:'rgba(251,191,36,0.15)',low:'rgba(59,130,246,0.15)'};
+let h='';Object.entries(byCat).forEach(([cat,items])=>{h+='<div class="audit-category"><div class="cat-title">📂 '+cat+' ('+items.length+')</div>';items.forEach(b=>{h+='<div class="audit-item"><div class="audit-header" onclick="toggleAccordion(this)"><div class="audit-title-group"><span class="badge" style="background:'+sevBg[b.severity]+';color:'+sevCol[b.severity]+';border:1px solid '+sevCol[b.severity]+';">'+b.severity.toUpperCase()+'</span><span>'+b.title+'</span></div><span>▼</span></div><div class="audit-body"><div class="box box-evidence"><strong>Detail:</strong> '+b.detail+'</div><div class="box box-fix"><strong>Fix:</strong> '+b.fix+'</div></div></div>';});h+='</div>';});
+document.getElementById('bugsResults').innerHTML=h;}
+function renderSEO(t){const doc=new DOMParser().parseFromString(t,'text/html');let sc=100;let h='';const row=(ok,label,detail)=>{h+='<div style="padding:10px;margin-bottom:8px;background:#0a0e17;border-left:3px solid '+(ok?'var(--neon-green)':'var(--neon-red)')+';border-radius:4px;font-size:13px;"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:5px;"><span>'+(ok?'✅':'❌')+' '+label+'</span>'+(detail?'<span style="color:var(--text-muted);font-size:11px;">'+detail+'</span>':'')+'</div></div>';};
+const title=doc.querySelector('title');const tOk=title&&title.textContent.trim()&&title.textContent.length>=30&&title.textContent.length<=60;if(!tOk)sc-=15;row(tOk,'Title tag',title?title.textContent.length+' chars':'Missing');
+const desc=doc.querySelector('meta[name="description"]');const dOk=desc&&desc.getAttribute('content')&&desc.getAttribute('content').length>=120;if(!dOk)sc-=15;row(dOk,'Meta description',desc?(desc.getAttribute('content')||'').length+' chars':'Missing');
+const h1=doc.querySelectorAll('h1');const h1Ok=h1.length===1;if(!h1Ok)sc-=10;row(h1Ok,'Single H1',h1.length+' found');
+const canon=doc.querySelector('link[rel="canonical"]');if(!canon)sc-=10;row(!!canon,'Canonical URL');
+const og=doc.querySelectorAll('meta[property^="og:"]');const ogOk=og.length>=3;if(!ogOk)sc-=10;row(ogOk,'Open Graph tags',og.length+' found');
+const schema=doc.querySelector('script[type="application/ld+json"]');if(!schema)sc-=10;row(!!schema,'Structured Data');
+const fav=doc.querySelector('link[rel*="icon"]');if(!fav)sc-=5;row(!!fav,'Favicon');
+const robot=doc.querySelector('meta[name="robots"]');const rOk=!robot||!(robot.getAttribute('content')||'').includes('noindex');if(!rOk)sc-=25;row(rOk,'Indexable (no noindex)');
+sc=Math.max(0,sc);tabScores.seo=sc;document.getElementById('seoScore').innerText=sc;document.getElementById('seoSummary').style.display='block';document.getElementById('seoResults').innerHTML=h;}
+function renderA11y(t){const doc=new DOMParser().parseFromString(t,'text/html');let sc=100;let h='';const row=(ok,label,detail)=>{h+='<div style="padding:10px;margin-bottom:8px;background:#0a0e17;border-left:3px solid '+(ok?'var(--neon-green)':'var(--neon-red)')+';border-radius:4px;font-size:13px;"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:5px;"><span>'+(ok?'✅':'❌')+' '+label+'</span>'+(detail?'<span style="color:var(--text-muted);font-size:11px;">'+detail+'</span>':'')+'</div></div>';};
+const html=doc.querySelector('html');const langOk=html&&html.getAttribute('lang');if(!langOk)sc-=15;row(!!langOk,'HTML lang attribute');
+const imgs=doc.querySelectorAll('img');let noAlt=0;imgs.forEach(i=>{if(!i.getAttribute('alt')&&i.getAttribute('alt')!=='')noAlt++;});if(noAlt>0)sc-=Math.min(25,noAlt*3);row(noAlt===0,'Images with alt text',noAlt+' missing');
+const inputs=doc.querySelectorAll('input:not([type="hidden"]):not([type="submit"])');let noLabel=0;inputs.forEach(inp=>{const id=inp.getAttribute('id');const ok=(id&&doc.querySelector('label[for="'+id+'"]'))||inp.closest('label')||inp.getAttribute('aria-label')||inp.getAttribute('aria-labelledby');if(!ok)noLabel++;});if(noLabel>0)sc-=Math.min(20,noLabel*4);row(noLabel===0,'Form labels',noLabel+' missing');
+let emptyBtn=0;doc.querySelectorAll('button').forEach(b=>{if(!(b.textContent||'').trim()&&!b.getAttribute('aria-label')&&!b.getAttribute('aria-labelledby'))emptyBtn++;});if(emptyBtn>0)sc-=Math.min(15,emptyBtn*3);row(emptyBtn===0,'Accessible buttons',emptyBtn+' empty');
+const headings=doc.querySelectorAll('h1,h2,h3,h4,h5,h6');const headingTags=Array.from(headings).map(h=>parseInt(h.tagName[1]));let skips=0;for(let i=1;i<headingTags.length;i++){if(headingTags[i]-headingTags[i-1]>1)skips++;}if(skips>0)sc-=Math.min(10,skips*2);row(skips===0,'Heading hierarchy',skips+' skips');
+let badTab=0;doc.querySelectorAll('[tabindex]').forEach(el=>{if(parseInt(el.getAttribute('tabindex'))>0)badTab++;});if(badTab>0)sc-=5;row(badTab===0,'No tabindex > 0',badTab+' issues');
+sc=Math.max(0,sc);tabScores.a11y=sc;document.getElementById('a11yScore').innerText=sc;document.getElementById('a11ySummary').style.display='block';document.getElementById('a11yResults').innerHTML=h;}
+function renderSSL(t){let sc=0;let h='';const isHttps=currentUrl.startsWith('https://');const row=(ok,label,detail)=>{if(ok)sc+=20;h+='<div style="padding:10px;margin-bottom:8px;background:#0a0e17;border-left:3px solid '+(ok?'var(--neon-green)':'var(--neon-red)')+';border-radius:4px;font-size:13px;"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:5px;"><span>'+(ok?'✅':'❌')+' '+label+'</span>'+(detail?'<span style="color:var(--text-muted);font-size:11px;">'+detail+'</span>':'')+'</div></div>';};
+row(isHttps,'HTTPS Enabled',isHttps?'Secure':'Insecure');row(t.includes('strict-transport-security'),'HSTS Header',t.includes('strict-transport-security')?'Present':'Missing');row(t.includes('content-security-policy'),'CSP Header',t.includes('content-security-policy')?'Present':'Missing');row(!t.includes('http://'),'No Mixed Content',t.includes('http://')?'http:// found':'Clean');row(t.includes('upgrade-insecure-requests')||t.includes('x-content-type-options'),'Security Meta Tags','');
+sc=Math.min(100,sc);tabScores.ssl=sc;document.getElementById('sslGrade').innerText=sc>=80?'A':(sc>=50?'B':'F');document.getElementById('sslSummary').style.display='block';document.getElementById('sslResults').innerHTML=h;}
+function renderScripts(t){const known={'google-analytics':'Analytics','googletagmanager':'Tag Manager','facebook':'Facebook Pixel','fbq':'FB Pixel','hotjar':'Session Recording','clarity':'MS Clarity','segment':'Segment','mixpanel':'Mixpanel','stripe':'Payment','razorpay':'Payment','paypal':'Payment','intercom':'Live Chat','tawk':'Live Chat','recaptcha':'reCAPTCHA','sentry':'Error Tracking','cdn.shopify':'Shopify'};const found={};Object.entries(known).forEach(([k,v])=>{if(t.includes(k)){if(!found[v])found[v]=[];found[v].push(k);}});let h='<div class="xray-card"><h3>📜 Third-Party Scripts Detected</h3>';if(Object.keys(found).length===0){h+='<div class="list-item">No known scripts detected.</div>';}else{Object.entries(found).forEach(([type,kws])=>{h+='<div class="list-item"><strong style="color:var(--neon-green);">'+type+'</strong><br><span style="font-size:11px;color:#888;">'+kws.join(', ')+'</span></div>';});}h+='</div>';const rx=/<script.*?src=["']([^"']+\.js[^"']*)["']/g;let m,scripts=[];while((m=rx.exec(t))!==null&&scripts.length<20)scripts.push(m[1]);h+='<div class="xray-card"><h3>🔗 All External JS Files ('+scripts.length+')</h3>';if(scripts.length===0)h+='<div class="list-item">None</div>';else scripts.forEach(s=>h+='<div class="list-item">'+s+'</div>');h+='</div>';document.getElementById('scriptsResults').innerHTML=h;}
+function saveHistory(tab,score){if(score===null||score===undefined||!currentUrl)return;try{const h=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');h.unshift({url:currentUrl,tab,score,ts:Date.now()});localStorage.setItem(HISTORY_KEY,JSON.stringify(h.slice(0,50)));}catch{}}
+function renderHistory(){try{const h=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');if(h.length===0){document.getElementById('historyList').innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);">No saved scans yet.</div>';return;}document.getElementById('historyList').innerHTML=h.map(item=>'<div class="history-item" onclick="document.getElementById(\'urlInput\').value=\''+item.url+'\';switchTab({target:document.querySelector(\'[data-tab=\\\''+item.tab+'\\\']\')},\\\''+item.tab+'\\\');"><strong>'+item.url+'</strong><br><span style="color:var(--neon-green);">'+item.tab.toUpperCase()+'</span> — Score: '+item.score+'/100 <span style="color:#888;">· '+new Date(item.ts).toLocaleString()+'</span></div>').join('');}catch{}}
+function clearHistory(){if(confirm('Clear all history?')){localStorage.removeItem(HISTORY_KEY);renderHistory();}}
+async function runComparison(){
+    const u1=document.getElementById('compareUrl1').value.trim();
+    const u2=document.getElementById('compareUrl2').value.trim();
+    if(!u1||!u2)return alert('Both URLs required.');
+    const fix=u=>u.startsWith('http')?u:'https://'+u;
+    document.getElementById('compareResults').innerHTML='<div style="text-align:center;color:var(--neon-green);padding:20px;">Fetching both sites...</div>';
+    function deepScore(t){
+        if(!t||t.length<100)return{total:0,breakdown:{},fetched:false};
+        const doc=new DOMParser().parseFromString(t,'text/html');
+        const breakdown={};let s=0;
+        const title=doc.querySelector('title');const tLen=title?title.textContent.trim().length:0;
+        if(tLen>=30&&tLen<=60){s+=15;breakdown['Title (30-60 chars)']=15;}else if(tLen>0){s+=7;breakdown['Title (weak)']=7;}else{breakdown['Title']=0;}
+        const desc=doc.querySelector('meta[name="description"]');const dLen=desc?(desc.getAttribute('content')||'').length:0;
+        if(dLen>=120&&dLen<=160){s+=15;breakdown['Meta desc (120-160)']=15;}else if(dLen>0){s+=7;breakdown['Meta desc (weak)']=7;}else{breakdown['Meta description']=0;}
+        const h1Count=doc.querySelectorAll('h1').length;
+        if(h1Count===1){s+=10;breakdown['Single H1']=10;}else if(h1Count>1){s+=3;breakdown['Multiple H1']=3;}else{breakdown['Missing H1']=0;}
+        const headings=Array.from(doc.querySelectorAll('h1,h2,h3,h4,h5,h6')).map(h=>parseInt(h.tagName[1]));let skips=0;
+        for(let i=1;i<headings.length;i++){if(headings[i]-headings[i-1]>1)skips++;}
+        if(skips===0&&headings.length>0){s+=10;breakdown['Heading hierarchy']=10;}else if(skips<=2){s+=5;breakdown['Heading hierarchy (minor)']=5;}else{breakdown['Heading hierarchy']=0;}
+        if(doc.querySelector('link[rel="canonical"]')){s+=10;breakdown['Canonical URL']=10;}else{breakdown['Canonical URL']=0;}
+        const og=doc.querySelectorAll('meta[property^="og:"]');
+        if(og.length>=3){s+=10;breakdown['Open Graph (3+)']=10;}else if(og.length>0){s+=5;breakdown['Open Graph (partial)']=5;}else{breakdown['Open Graph']=0;}
+        if(doc.querySelector('script[type="application/ld+json"]')){s+=10;breakdown['Structured Data']=10;}else{breakdown['Structured Data']=0;}
+        if(doc.querySelector('meta[name="viewport"]')){s+=5;breakdown['Viewport meta']=5;}else{breakdown['Viewport meta']=0;}
+        if(doc.querySelector('link[rel*="icon"]')){s+=5;breakdown['Favicon']=5;}else{breakdown['Favicon']=0;}
+        const robots=doc.querySelector('meta[name="robots"]');const isNoindex=robots&&(robots.getAttribute('content')||'').toLowerCase().includes('noindex');
+        if(!isNoindex){s+=10;breakdown['Indexable']=10;}else{breakdown['⚠️ NOINDEX']=0;}
+        const imgs=doc.querySelectorAll('img');
+        if(imgs.length>0){let noAlt=0;imgs.forEach(i=>{if(!i.getAttribute('alt')&&i.getAttribute('alt')!=='')noAlt++;});const ratio=1-(noAlt/imgs.length);if(ratio>0.9){s+=5;breakdown['Image alt (>90%)']=5;}else if(ratio>0.5){s+=2;breakdown['Image alt (partial)']=2;}else{breakdown['Image alt']=0;}}
+        return{total:Math.min(100,s),breakdown,fetched:true};
+    }
+    try{
+        const[r1,r2]=await Promise.all([fetchTargetHtml(fix(u1)).catch(()=>''),fetchTargetHtml(fix(u2)).catch(()=>'')]);
+        const s1=deepScore(r1);const s2=deepScore(r2);
+        if(!s1.fetched&&!s2.fetched){document.getElementById('compareResults').innerHTML='<div style="color:var(--neon-red);padding:20px;text-align:center;">❌ Both sites could not be fetched. Proxies may be down.</div>';return;}
+        const allKeys=new Set([...Object.keys(s1.breakdown),...Object.keys(s2.breakdown)]);
+        function buildCell(url,result){
+            let html='<div class="compare-cell"><h4>'+url+'</h4>';
+            if(!result.fetched){html+='<div style="color:var(--neon-red);padding:10px;">❌ Fetch failed</div></div>';return html;}
+            html+='<div class="compare-row" style="border-top:2px solid #374151;padding-top:10px;margin-top:5px;"><span><strong>Total Score</strong></span><span style="font-size:18px;font-weight:bold;color:'+(result.total>=75?'var(--neon-green)':result.total>=50?'#fbbf24':'var(--neon-red)')+';">'+result.total+'/100</span></div></div>';
+            return html;
+        }
+        let html='<div class="compare-grid">'+buildCell(fix(u1),s1)+buildCell(fix(u2),s2)+'</div>';
+        if(s1.fetched&&s2.fetched){
+            html+='<div style="margin-top:20px;padding:15px;background:#0a0e17;border-radius:8px;border:1px solid #374151;">';
+            html+='<h4 style="color:var(--neon-green);margin-top:0;">Detailed Breakdown</h4>';
+            allKeys.forEach(key=>{
+                const v1=s1.breakdown[key]||0;const v2=s2.breakdown[key]||0;
+                const c1=v1>v2?'winner':v1<v2?'loser':'';const c2=v2>v1?'winner':v2<v1?'loser':'';
+                html+='<div class="compare-row"><span style="flex:2;">'+key+'</span><span class="'+c1+'" style="flex:1;text-align:center;">'+v1+'</span><span class="'+c2+'" style="flex:1;text-align:center;">'+v2+'</span></div>';
+            });
+            if(s1.total!==s2.total){
+                const winner=s1.total>s2.total?fix(u1):fix(u2);const diff=Math.abs(s1.total-s2.total);
+                html+='<div style="margin-top:15px;padding:10px;background:rgba(0,255,204,0.1);border-radius:6px;text-align:center;color:var(--neon-green);font-weight:bold;">🏆 Winner: '+winner+' (by '+diff+' points)</div>';
+            }else{
+                html+='<div style="margin-top:15px;padding:10px;background:rgba(251,191,36,0.1);border-radius:6px;text-align:center;color:#fbbf24;font-weight:bold;">🤝 Tie — Both scored '+s1.total+'</div>';
+            }
+            html+='</div>';
+        }
+        document.getElementById('compareResults').innerHTML=html;
+    }catch(e){document.getElementById('compareResults').innerHTML='<div style="color:var(--neon-red);padding:20px;">❌ Error: '+e.message+'</div>';}
+}
+function showCertificate(){if(!currentUrl)return alert("Please enter a URL and run a scan first.");const labels={audit:'DPDP Audit',ecom:'E-Commerce',headers:'Security Headers',bugs:'Bug Finder',seo:'SEO Audit',a11y:'Accessibility',ssl:'SSL Check'};const types={audit:'DPDP AUDIT',ecom:'E-COMMERCE',headers:'HEADERS',bugs:'BUG FINDER',seo:'SEO AUDIT',a11y:'ACCESSIBILITY',ssl:'SSL CHECK'};let score=tabScores[currentTab];if(score===null||score===undefined)return alert('Please run a '+labels[currentTab]+' scan first.');let grade='F';if(score>=90)grade='A+';else if(score>=75)grade='A';else if(score>=50)grade='B';else grade='C';const randomId='HX-'+Math.floor(100000+Math.random()*900000);document.getElementById('certUrl').innerText=currentUrl.replace('https://','').replace('http://','');document.getElementById('certGrade').innerText=grade;document.getElementById('certScore').innerText=score+'/100';document.getElementById('certId').innerText=randomId;document.getElementById('certDate').innerText=new Date().toLocaleDateString('en-IN',{year:'numeric',month:'short',day:'numeric'});document.getElementById('certType').innerText=types[currentTab]||'AUDIT';document.getElementById('certTypeText').innerText=labels[currentTab]||'Audit';document.getElementById('certificateModal').style.display='flex';}
+function showPDFReport(){if(!currentUrl)return alert('Run a scan first.');const tabs=Object.keys(tabScores).filter(k=>tabScores[k]!==null);if(tabs.length===0)return alert('Run at least one scan first.');let h='<div style="background:#fff;color:#000;padding:30px;max-width:800px;margin:0 auto;font-family:Arial,sans-serif;"><h1 style="color:#0a0e17;">Hexbytes Report</h1><p><strong>URL:</strong> '+currentUrl+'</p><p><strong>Date:</strong> '+new Date().toLocaleString()+'</p><hr><h2>Summary</h2>';tabs.forEach(t=>{h+='<div style="display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid #eee;"><span>'+t.toUpperCase()+'</span><strong>'+tabScores[t]+'/100</strong></div>';});h+='<hr><p style="font-size:11px;color:#666;"><strong>Disclaimer:</strong> Automated heuristic analysis only. Not a legal compliance certificate.</p><p style="text-align:center;margin-top:30px;"><strong>> HEXBYTES.IN</strong></p></div>';const w=window.open('','_blank');w.document.write('<html><head><title>Hexbytes Report</title></head><body>'+h+'</body></html>');w.document.close();setTimeout(()=>w.print(),500);}
+function closeModal(){document.getElementById('certificateModal').style.display='none';}
+function showError(msg){document.getElementById('errorMsg').innerText=msg;document.getElementById('errorMsg').style.display='block';document.getElementById('loader').style.display='none';}
+</script>
+</body>
+</html>
